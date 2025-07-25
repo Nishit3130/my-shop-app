@@ -1,0 +1,4 @@
+.settings-container { max-width: 800px; margin: 0 auto; }
+.settings-form { background-color: var(--white-color); padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--box-shadow); }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.form-actions { margin-top: 2rem; display: flex; justify-content: flex-end; }

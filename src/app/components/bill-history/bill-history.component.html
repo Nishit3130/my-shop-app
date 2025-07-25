@@ -1,0 +1,201 @@
+<div class="bill-history-container">
+  <div class="header-section">
+    <h1 class="page-title">History</h1>
+    <div class="filter-buttons">
+      <button class="filter-btn" [class.active]="documentTypeFilter === 'ALL'" (click)="documentTypeFilter='ALL'; filterDocuments()">All</button>
+      <button class="filter-btn" [class.active]="documentTypeFilter === DocumentType.BILL" (click)="documentTypeFilter=DocumentType.BILL; filterDocuments()">Bills</button>
+      <button class="filter-btn" [class.active]="documentTypeFilter === DocumentType.QUOTATION" (click)="documentTypeFilter=DocumentType.QUOTATION; filterDocuments()">Quotations</button>
+    </div>
+  </div>
+
+  <div class="filter-controls">
+    <div class="date-filter">
+      <label>From:</label>
+      <input type="date" class="form-control" [(ngModel)]="startDate" (change)="filterDocuments()">
+      <label>To:</label>
+      <input type="date" class="form-control" [(ngModel)]="endDate" (change)="filterDocuments()">
+    </div>
+    <div class="type-filter">
+      <label>Payment Type:</label>
+      <select class="form-control" [(ngModel)]="selectedPaymentType" (change)="filterDocuments()">
+        <option value="ALL">All</option>
+        <option value="CASH">Cash</option>
+        <option value="CREDIT">Credit</option>
+      </select>
+    </div>
+    <div class="search-bar">
+      <span class="material-icons">search</span>
+      <input type="text" placeholder="Search Customer, Phone, or Invoice #" [(ngModel)]="searchTerm" (input)="filterDocuments()">
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Doc #</th>
+          <th>Date</th>
+          <th>Customer</th>
+          <th class="text-right">Total</th>
+          <th>Status</th>
+          <th class="text-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let doc of filteredDocuments">
+          <td><span class="badge" [class.badge-info]="doc.documentType === 'BILL'" [class.badge-secondary]="doc.documentType === 'QUOTATION'">{{ doc.documentType }}</span></td>
+          <td>{{ doc.billNo }}</td>
+          <td>{{ doc.createdAt | date:'medium' }}</td>
+          <td>{{ doc.customerName }}</td>
+          <td class="text-right">₹{{ doc.total.toFixed(2) }}</td>
+          <td>
+            <span *ngIf="doc.documentType === 'BILL'" class="badge" [class.badge-success]="(doc.total - doc.amountPaid <= 0.005)" [class.badge-warning]="(doc.total - doc.amountPaid > 0.005)">
+              {{ (doc.total - doc.amountPaid <= 0.005) ? 'PAID' : 'PENDING' }}
+            </span>
+            <span *ngIf="doc.documentType === 'QUOTATION'" class="badge badge-secondary">
+              {{ doc.quotationStatus }}
+            </span>
+          </td>
+          <td class="actions-cell text-center">
+            <button class="icon-button" title="View Details" (click)="viewBill(doc)">
+              <span class="material-icons">visibility</span>
+            </button>
+            <button class="icon-button" title="Edit Bill" *ngIf="doc.documentType === 'BILL'" (click)="editBill(doc)">
+              <span class="material-icons">edit</span>
+            </button>
+            <button class="icon-button" title="Convert to Bill" *ngIf="doc.documentType === 'QUOTATION'" (click)="convertToBill(doc.id)">
+              <span class="material-icons">transform</span>
+            </button>
+            <button class="icon-button delete" title="Delete" (click)="requestDelete(doc)">
+              <span class="material-icons">delete</span>
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="filteredDocuments.length === 0">
+          <td colspan="7" class="no-data">No documents found.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="modal" *ngIf="selectedBill">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>{{ selectedBill.documentType }} Details ({{ selectedBill.billNo }})</h2>
+        <button class="icon-button" (click)="printBill()" title="Print Bill"><span class="material-icons">print</span></button>
+        <button class="icon-button" (click)="closeModal()"><span class="material-icons">close</span></button>
+      </div>
+      <div class="modal-body print-section">
+        <div class="print-header" *ngIf="settings">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="font-size:1.05em;color:#444;">
+              {{ settings.address }}<br>
+              <span *ngIf="settings.gstin">GSTIN: {{ settings.gstin }}</span>
+            </div>
+            <div style="text-align: center;">
+              <img *ngIf="settings.companyLogo" [src]="settings.companyLogo" alt="Logo" style="width:48px;height:48px;border-radius:50%;margin-bottom:4px;" />
+              <div style="font-size:1.5em;font-weight:bold;letter-spacing:1px;">{{ settings.companyName }}</div>
+            </div>
+            <div style="font-size:1.05em;color:#444;text-align:right;">
+              <span *ngIf="settings.phone">Ph: {{ settings.phone }}</span>
+              <span *ngIf="settings.email"> | Email: {{ settings.email }}</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0 0 0;">
+          <div>
+            <b>Name:</b> {{ selectedBill.customerName }}<br>
+            <b *ngIf="selectedBill.customerPhone">Phone:</b> <span *ngIf="selectedBill.customerPhone">{{ selectedBill.customerPhone }}</span>
+          </div>
+          <div style="text-align:right;">
+            <span>Date: {{ selectedBill.createdAt | date:'full' }}</span><br>
+            <span>Bill No: {{ selectedBill.billNo }}</span>
+          </div>
+        </div>
+        <hr>
+        <h4>Items</h4>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th class="text-center">Qty</th>
+              <th class="text-right">Price</th>
+              <th class="text-right">Discount</th>
+              <th class="text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of selectedBill.items">
+              <td>{{ item.productName }}</td>
+              <td class="text-center">{{ item.quantity }}</td>
+              <td class="text-right">{{ settings?.currencySymbol || '₹' }}{{ item.price.toFixed(2) }}</td>
+              <td class="text-right">{{ item.discountValue ? (item.discountValue.toFixed(2) + (item.discountType === 'PERCENT' ? '%' : (settings?.currencySymbol || '₹'))) : '-' }}</td>
+              <td class="text-right">{{ settings?.currencySymbol || '₹' }}{{ item.total.toFixed(2) }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <hr>
+        <div class="summary-view">
+          <div class="summary-row">
+            <span>Subtotal</span>
+            <span>{{ settings?.currencySymbol || '₹' }}{{ (selectedBill.subtotal + (selectedBill.totalItemDiscount || 0)).toFixed(2) }}</span>
+          </div>
+          <div class="summary-row" *ngIf="selectedBill.totalItemDiscount && selectedBill.totalItemDiscount > 0">
+            <span>Total Item Discounts</span>
+            <span>- {{ settings?.currencySymbol || '₹' }}{{ selectedBill.totalItemDiscount.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row" *ngIf="selectedBill.discount && selectedBill.discount > 0">
+            <span>Bill Discount</span>
+            <span>- {{ settings?.currencySymbol || '₹' }}{{ selectedBill.discount.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row" *ngIf="selectedBill.packingCharge && selectedBill.packingCharge > 0">
+            <span>Packing Charge</span>
+            <span>{{ settings?.currencySymbol || '₹' }}{{ selectedBill.packingCharge.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row" *ngIf="selectedBill.handlingCharge && selectedBill.handlingCharge > 0">
+            <span>Handling Charge</span>
+            <span>{{ settings?.currencySymbol || '₹' }}{{ selectedBill.handlingCharge.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row" *ngIf="selectedBill.deliveryCharge && selectedBill.deliveryCharge > 0">
+            <span>Delivery Charge</span>
+            <span>{{ settings?.currencySymbol || '₹' }}{{ selectedBill.deliveryCharge.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row" *ngIf="selectedBill.tax && selectedBill.tax > 0">
+            <span>Tax</span>
+            <span>{{ settings?.currencySymbol || '₹' }}{{ selectedBill.tax.toFixed(2) }}</span>
+          </div>
+          <hr>
+          <div class="summary-row total">
+            <span>Grand Total:</span><span>{{ settings?.currencySymbol || '₹' }}{{ selectedBill.total.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row">
+            <span>Amount Paid:</span><span>{{ settings?.currencySymbol || '₹' }}{{ selectedBill.amountPaid.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row outstanding" *ngIf="(selectedBill.total - selectedBill.amountPaid) > 0.005">
+            <span>Balance Due</span>
+            <span>{{ settings?.currencySymbol || '₹' }}{{ (selectedBill.total - selectedBill.amountPaid).toFixed(2) }}</span>
+          </div>
+        </div>
+        <div class="print-footer" *ngIf="settings && settings.invoiceFooter">
+          <hr>
+          <div [innerHTML]="settings.invoiceFooter"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal confirmation-modal" *ngIf="showDeleteConfirmation">
+    <div class="modal-content">
+      <div class="modal-header"><h2>Confirm Deletion</h2></div>
+      <div class="modal-body" *ngIf="billToDelete">
+        <p>Are you sure you want to delete {{ billToDelete.documentType.toLowerCase() }} #<strong>{{ billToDelete.billNo }}</strong>?</p>
+        <p class="warning-text">This action cannot be undone.</p>
+      </div>
+      <div class="modal-actions">
+        <button class="cancel-button" (click)="cancelDelete()">Cancel</button>
+        <button class="delete-button" (click)="confirmDelete()">Yes, Delete</button>
+      </div>
+    </div>
+  </div>
+</div>

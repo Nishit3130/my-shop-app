@@ -1,0 +1,19 @@
+/* src/app/components/external-account-list/external-account-list.component.css */
+.list-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+}
+
+.actions-cell {
+    text-align: center;
+}
+
+.has-credit {
+    color: var(--success-color);
+    font-weight: bold;
+}
+
+.has-due {
+    color: var(--danger-color);
+    font-weight: bold;
+}

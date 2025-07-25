@@ -1,0 +1,184 @@
+<div class="history-container">
+  <div class="header-section">
+    <h1 class="page-title">Purchase History</h1>
+    <a routerLink="/purchases/add" class="action-button">
+      <span class="material-icons">add</span> Record New Purchase
+    </a>
+  </div>
+
+  <div class="filter-controls">
+    <div class="form-group">
+      <label for="startDate">From:</label>
+      <input type="date" id="startDate" [(ngModel)]="startDate" (change)="applyFilters()">
+    </div>
+    <div class="form-group">
+      <label for="endDate">To:</label>
+      <input type="date" id="endDate" [(ngModel)]="endDate" (change)="applyFilters()">
+    </div>
+    <div class="form-group">
+      <label for="statusFilter">Status:</label>
+      <select id="statusFilter" [(ngModel)]="filterStatus" (change)="applyFilters()">
+        <option value="ALL">All</option>
+        <option value="UNPAID">Unpaid</option>
+        <option value="PARTIALLY_PAID">Partially Paid</option>
+        <option value="PAID">Paid</option>
+      </select>
+    </div>
+    <div class="form-group search-bar">
+        <span class="material-icons">search</span>
+        <input type="text" placeholder="Search by supplier or invoice #" 
+               [(ngModel)]="searchTerm"
+               (input)="applyFilters()">
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Purchase Date</th>
+          <th>Supplier</th>
+          <th>Supplier Invoice #</th>
+          <th>Total Amount (₹)</th>
+          <th>Amount Paid (₹)</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let purchase of filteredPurchases">
+          <td>{{ purchase.purchaseDate | date:'mediumDate' }}</td>
+          <td>{{ purchase.supplierName }}</td>
+          <td>{{ purchase.supplierInvoiceNo }}</td>
+          <td class="text-right">{{ purchase.totalAmount.toFixed(2) }}</td>
+          <td class="text-right">{{ purchase.amountPaid.toFixed(2) }}</td>
+          <td>
+            <span class="badge" [ngClass]="{
+              'paid': purchase.status === 'PAID',
+              'partially-paid': purchase.status === 'PARTIALLY_PAID',
+              'unpaid': purchase.status === 'UNPAID'
+            }">
+              {{ purchase.status }}
+            </span>
+          </td>
+          <td class="actions-cell">
+            <button class="icon-button"(click)="viewDetails(purchase)" title="View Details">
+              <span class="material-icons">visibility</span>
+            </button>
+            <button class="icon-button" (click)="editPurchase(purchase.id)" title="Edit Purchase">
+              <span class="material-icons">edit</span>
+            </button>
+            <button *ngIf="purchase.status !== 'PAID'"
+                    class="icon-button" 
+                    (click)="openPaymentModal(purchase)" 
+                    title="Record Payment">
+              <span class="material-icons">payment</span>
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="filteredPurchases.length === 0">
+            <td colspan="7" class="no-data">No purchases found for the selected filters.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal" *ngIf="selectedPurchase">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Purchase Details</h2>
+      <button class="icon-button" (click)="closeModal()"><span class="material-icons">close</span></button>
+    </div>
+    <div class="modal-body print-section">
+      <div class="receipt-header">
+        <h3>Purchase Invoice</h3>
+        <p><strong>Supplier:</strong> {{ selectedPurchase.supplierName }}</p>
+        <p><strong>Supplier Invoice #:</strong> {{ selectedPurchase.supplierInvoiceNo }}</p>
+        <p><strong>Purchase Date:</strong> {{ selectedPurchase.purchaseDate | date:'fullDate' }}</p>
+      </div>
+      <div class="receipt-items">
+        <h4>Items Purchased</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Qty</th>
+              <th>Purchase Price</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of selectedPurchase.items">
+              <td>{{ item.productName }}</td>
+              <td>{{ item.quantity }}</td>
+              <td>₹{{ item.purchasePrice.toFixed(2) }}</td>
+              <td>₹{{ item.total.toFixed(2) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="receipt-summary">
+        <div class="summary-row"><span>Subtotal:</span><span>₹{{ selectedPurchase.subtotal.toFixed(2) }}</span></div>
+        <div class="summary-row" *ngIf="selectedPurchase.taxAmount"><span>Tax:</span><span>₹{{ selectedPurchase.taxAmount.toFixed(2) }}</span></div>
+        <div class="summary-row" *ngIf="selectedPurchase.otherCharges"><span>Other Charges:</span><span>₹{{ selectedPurchase.otherCharges.toFixed(2) }}</span></div>
+        <hr>
+        <div class="summary-row total"><span>Grand Total:</span><span>₹{{ selectedPurchase.totalAmount.toFixed(2) }}</span></div>
+        <div class="summary-row"><span>Amount Paid:</span><span>₹{{ selectedPurchase.amountPaid.toFixed(2) }}</span></div>
+        <div class="summary-row outstanding"><span>Balance Due:</span><span>₹{{ (selectedPurchase.totalAmount - selectedPurchase.amountPaid).toFixed(2) }}</span></div>
+      </div>
+    </div>
+    <div class="modal-actions noprint">
+      <button class="action-button print-button" (click)="printPurchase()">
+        <span class="material-icons">print</span> Print
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" *ngIf="showPaymentModal && purchaseForPayment">
+  <div class="modal-content payment-modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Record Payment</h2>
+      <button class="icon-button" (click)="closePaymentModal()"><span class="material-icons">close</span></button>
+    </div>
+    <div class="modal-body">
+      <form #paymentForm="ngForm" (ngSubmit)="submitPayment()">
+        <div class="payment-info">
+          <p><strong>Supplier:</strong> {{ purchaseForPayment.supplierName }}</p>
+          <p><strong>Invoice #:</strong> {{ purchaseForPayment.supplierInvoiceNo }}</p>
+          <p><strong>Outstanding:</strong> ₹{{ (purchaseForPayment.totalAmount - purchaseForPayment.amountPaid).toFixed(2) }}</p>
+        </div>
+        <hr>
+        <div class="form-group">
+          <label for="paymentAmount">Payment Amount (₹)</label>
+          <input type="number" id="paymentAmount" name="paymentAmount" class="form-control" 
+                 [(ngModel)]="paymentAmount" required min="0.01">
+        </div>
+        <div class="form-group">
+          <label for="paymentDate">Payment Date</label>
+          <input type="date" id="paymentDate" name="paymentDate" class="form-control" 
+                 [(ngModel)]="paymentDate" required>
+        </div>
+        <div class="form-group">
+          <label for="paymentMethod">Payment Method</label>
+          <select id="paymentMethod" name="paymentMethod" class="form-control" [(ngModel)]="paymentMethod">
+            <option value="BANK_TRANSFER">Bank Transfer</option>
+            <option value="UPI">UPI</option>
+            <option value="CASH">Cash</option>
+            <option value="OTHER">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="paymentNotes">Notes (Optional)</label>
+          <textarea id="paymentNotes" name="paymentNotes" class="form-control" 
+                    [(ngModel)]="paymentNotes" rows="2"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="cancel-button" (click)="closePaymentModal()">Cancel</button>
+          <button type="submit" class="action-button primary-action-button" [disabled]="!paymentForm.valid">Record Payment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

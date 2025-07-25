@@ -1,0 +1,45 @@
+import { Routes } from '@angular/router';
+import { DashboardComponent } from './components/dashboard/dashboard.component';
+import { BillingComponent } from './components/billing/billing.component';
+import { BillHistoryComponent } from './components/bill-history/bill-history.component';
+import { ProductManagementComponent } from './components/product-management/product-management.component';
+import { ReportsComponent } from './components/reports/reports.component';
+import { CreditDebitManagementComponent } from './components/credit-debit-management/credit-debit-management.component';
+import { CustomerListComponent } from './components/customer-list/customer-list.component';
+import { CustomerLedgerComponent } from './components/customer-ledger/customer-ledger.component';
+import { CustomerEditComponent } from './components/customer-edit/customer-edit.component';
+import { SupplierListComponent } from './components/supplier-list/supplier-list.component';
+import { SupplierEditComponent } from './components/supplier-edit/supplier-edit.component';
+import { PurchaseFormComponent } from './components/purchase-form/purchase-form.component';
+import { PurchaseHistoryComponent } from './components/purchase-history/purchase-history.component';
+import { SupplierLedgerComponent } from './components/supplier-ledger/supplier-ledger.component';
+import { SettingsComponent } from './components/settings/settings.component';
+import { ExternalAccountListComponent } from './components/external-account-list/external-account-list.component';
+import { ExternalLedgerComponent } from './components/external-ledger/external-ledger.component';
+import { IncomeExpenseComponent } from './components/income-expense/income-expense.component';
+
+export const routes: Routes = [
+    { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+    { path: 'dashboard', component: DashboardComponent },
+    { path: 'billing', component: BillingComponent },
+    { path: 'billing/edit/:id', component: BillingComponent },
+    { path: 'billing/from-quote/:id', component: BillingComponent },
+    { path: 'bills', component: BillHistoryComponent },
+    { path: 'products', component: ProductManagementComponent },
+    { path: 'reports', component: ReportsComponent },
+    { path: 'credit-debit', component: CreditDebitManagementComponent },
+    { path: 'customers', component: CustomerListComponent },
+    { path: 'customers/edit/:id', component: CustomerEditComponent },
+    { path: 'customers/:id/ledger', component: CustomerLedgerComponent },
+    { path: 'suppliers', component: SupplierListComponent },
+    { path: 'suppliers/add', component: SupplierEditComponent },
+    { path: 'suppliers/edit/:id', component: SupplierEditComponent },
+    { path: 'suppliers/:id/ledger', component: SupplierLedgerComponent },
+    { path: 'purchases', component: PurchaseHistoryComponent },
+    { path: 'purchases/add', component: PurchaseFormComponent },
+    { path: 'purchases/edit/:id', component: PurchaseFormComponent },
+    { path: 'manual-ledger', component: ExternalAccountListComponent },
+    { path: 'manual-ledger/account/:id', component: ExternalLedgerComponent },
+    { path: 'transactions', component: IncomeExpenseComponent },
+    { path: 'settings', component: SettingsComponent },
+];

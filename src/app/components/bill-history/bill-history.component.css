@@ -1,0 +1,96 @@
+.bill-history-container { 
+    max-width: 1200px; 
+    margin: 0 auto; 
+    padding: 1rem; 
+}
+
+.filter-buttons { 
+    display: flex; 
+    gap: 0.5rem; 
+}
+
+.filter-btn { 
+    background-color: #f5f5f5; 
+    border: 1px solid #ddd; 
+    border-radius: 4px; 
+    padding: 0.5rem 1rem; 
+    cursor: pointer; 
+    transition: all 0.2s ease; 
+}
+
+.filter-btn:hover { 
+    background-color: #e9e9e9; 
+}
+
+.filter-btn.active { 
+    background-color: var(--primary-color); 
+    color: white; 
+    border-color: var(--primary-color); 
+}
+
+.filter-controls { 
+    display: flex; 
+    gap: 1rem; 
+    flex-wrap: wrap; 
+    align-items: center; 
+    margin-bottom: 1.5rem; 
+    padding: 1rem; 
+    background-color: white; 
+    border-radius: var(--border-radius); 
+}
+
+.date-filter, .type-filter { 
+    display: flex; 
+    align-items: center; 
+    gap: 0.5rem; 
+}
+
+.search-bar { 
+    display: flex; 
+    align-items: center; 
+    background-color: var(--white-color); 
+    border: 1px solid #ddd; 
+    border-radius: 4px; 
+    padding: 0 0.5rem; 
+    flex-grow: 1; 
+}
+
+.search-bar input { 
+    flex: 1; 
+    border: none; 
+    padding: 0.5rem; 
+    outline: none; 
+}
+
+.actions-cell { 
+    display: flex; 
+    justify-content: center; 
+    gap: 0.5rem; 
+}
+
+.badge.badge-info { 
+    background-color: #17a2b8; 
+}
+
+.badge.badge-secondary { 
+    background-color: var(--secondary-color); 
+}
+
+.summary-view { 
+    margin-top: 1.5rem; 
+    text-align: right; 
+}
+
+.summary-view .total { 
+    font-size: 1.2rem; 
+}
+
+.warning-text {
+  font-size: 0.9em;
+  color: #721c24;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-top: 1rem;
+}

@@ -1,0 +1,46 @@
+<div class="customer-edit-container">
+  <div class="header-section">
+    <h1 class="page-title" *ngIf="customer">Edit Customer: {{ customer.name }}</h1>
+    <h1 class="page-title" *ngIf="!customer && !isLoading">Customer Not Found</h1>
+    <a routerLink="/customers" class="action-button secondary-action-button">
+      <span class="material-icons">arrow_back</span> Back to Customer List
+    </a>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-indicator">
+    <p>Loading customer details...</p>
+  </div>
+
+  <form (ngSubmit)="saveCustomer()" *ngIf="customer && !isLoading" class="edit-form">
+    <div class="form-group">
+      <label for="editCustomerName">Name:</label>
+      <input type="text" id="editCustomerName" class="form-control" 
+             [(ngModel)]="customerName" name="customerName" required>
+    </div>
+
+    <div class="form-group">
+      <label for="editCustomerPhone">Phone:</label>
+      <input type="tel" id="editCustomerPhone" class="form-control"
+             [(ngModel)]="customerPhone" name="customerPhone">
+    </div>
+
+    <div class="form-group">
+      <label for="editCustomerEmail">Email:</label>
+      <input type="email" id="editCustomerEmail" class="form-control"
+             [(ngModel)]="customerEmail" name="customerEmail">
+    </div>
+
+    <div class="form-group">
+      <label for="editCustomerAddress">Address:</label>
+      <textarea id="editCustomerAddress" class="form-control"
+                [(ngModel)]="customerAddress" name="customerAddress" rows="3"></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="cancel-button" (click)="cancelEdit()" [disabled]="isSaving">Cancel</button>
+      <button type="submit" class="action-button primary-action-button" [disabled]="isSaving || !customerName.trim()">
+        <span class="material-icons">save</span> {{ isSaving ? 'Saving...' : 'Save Changes' }}
+      </button>
+    </div>
+  </form>
+</div>

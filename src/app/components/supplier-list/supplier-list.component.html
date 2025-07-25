@@ -1,0 +1,69 @@
+<div class="list-container">
+  <div class="header-section">
+    <h1 class="page-title">Suppliers</h1>
+    <a routerLink="/suppliers/add" class="action-button">
+      <span class="material-icons">add</span> New Supplier
+    </a>
+  </div>
+
+  <div class="search-section">
+    <input type="text"
+           class="search-input"
+           placeholder="Search by name, phone, or email..."
+           [(ngModel)]="searchTerm"
+           (ngModelChange)="applyFilters()">
+  </div>
+
+  <div *ngIf="isLoading" class="loading-indicator">
+    <p>Loading suppliers...</p>
+  </div>
+
+  <div *ngIf="!isLoading && filteredSuppliers.length === 0" class="no-data">
+    <p *ngIf="searchTerm">No suppliers found matching "{{ searchTerm }}".</p>
+    <p *ngIf="!searchTerm">No suppliers found. Add one to get started.</p>
+  </div>
+
+  <div class="table-responsive" *ngIf="!isLoading && filteredSuppliers.length > 0">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Email</th>
+          <th>Address</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let supplier of filteredSuppliers">
+          <td>{{ supplier.name }}</td>
+          <td>{{ supplier.phone || '-' }}</td>
+          <td>{{ supplier.email || '-' }}</td>
+          <td>{{ supplier.address || '-' }}</td>
+          <td class=".data-table th, .data-table td">
+            <button class="icon-button" (click)="viewLedger(supplier.id)" title="View Ledger">
+              <span class="material-icons">receipt_long</span>
+            </button>
+            <button class="icon-button" (click)="editSupplier(supplier.id)" title="Edit Supplier">
+              <span class="material-icons">edit</span>
+            </button>
+            <button class="icon-button" (click)="requestDeleteSupplier(supplier)" title="Delete Supplier">
+              <span class="material-icons">delete</span>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal" *ngIf="showDeleteConfirmation && supplierToDelete">
+  <div class="modal-content confirmation-modal">
+    <div class="modal-header"><h2>Confirm Delete Supplier</h2><button class="icon-button" (click)="cancelDeleteSupplier()"><span class="material-icons">close</span></button></div>
+    <div class="modal-body">
+      <p>Are you sure you want to delete supplier: <strong>{{ supplierToDelete.name }}</strong>?</p>
+      <p class="warning-text">This action cannot be undone. Ensure all accounts with this supplier are settled.</p>
+      <div class="modal-actions"><button type="button" class="cancel-button" (click)="cancelDeleteSupplier()">Cancel</button><button type="button" class="delete-button confirm-delete-button" (click)="confirmDeleteSupplier()">Delete Supplier</button></div>
+    </div>
+  </div>
+</div>

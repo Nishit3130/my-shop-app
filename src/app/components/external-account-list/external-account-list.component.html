@@ -1,0 +1,90 @@
+<div class="list-container">
+  <div class="header-section">
+    <h1 class="page-title">Manual Ledger Accounts</h1>
+    <button class="action-button" (click)="openNewAccountModal()">
+      <span class="material-icons">add</span> New Account
+    </button>
+  </div>
+
+  <div class="table-responsive" *ngIf="accounts.length > 0; else noAccounts">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Account Name</th>
+          <th>Phone</th>
+          <th>Notes</th>
+          <th class="text-right">Balance (₹)</th>
+          <th class="text-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let acc of accounts">
+          <td>{{ acc.name }}</td>
+          <td>{{ acc.phone || '-' }}</td>
+          <td>{{ acc.notes || '-' }}</td>
+          <td class="text-right" [class.has-due]="acc.balance > 0" [class.has-credit]="acc.balance < 0">
+            {{ acc.balance > 0 ? acc.balance.toFixed(2) + ' (They Owe)' : (acc.balance < 0 ? (-acc.balance).toFixed(2) + ' (You Owe)' : '0.00') }}
+          </td>
+          <td class="actions-cell text-center">
+            <button class="icon-button" (click)="viewLedger(acc.id)" title="View Ledger">
+              <span class="material-icons">receipt_long</span>
+            </button>
+            <button class="icon-button" (click)="openEditAccountModal(acc)" title="Edit Account">
+              <span class="material-icons">edit</span>
+            </button>
+            <button class="icon-button delete" (click)="requestDelete(acc)" title="Delete Account">
+              <span class="material-icons">delete</span>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <ng-template #noAccounts>
+    <div class="no-data">
+      <p>No manual ledger accounts found. Add one to get started.</p>
+    </div>
+  </ng-template>
+</div>
+
+<div class="modal" *ngIf="showAccountModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>{{ editMode ? 'Edit Ledger Account' : 'Add New Ledger Account' }}</h2>
+      <button class="icon-button" (click)="closeAccountModal()"><span class="material-icons">close</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="accountName">Account Name</label>
+        <input type="text" id="accountName" class="form-control" [(ngModel)]="accountName" required>
+      </div>
+      <div class="form-group">
+        <label for="accountPhone">Phone (Optional)</label>
+        <input type="tel" id="accountPhone" class="form-control" [(ngModel)]="accountPhone">
+      </div>
+      <div class="form-group">
+        <label for="accountNotes">Notes (Optional)</label>
+        <textarea id="accountNotes" class="form-control" [(ngModel)]="accountNotes" rows="3"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="cancel-button" (click)="closeAccountModal()">Cancel</button>
+      <button type="button" class="action-button primary-action-button" (click)="saveAccount()" [disabled]="!accountName.trim()">Save Account</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal confirmation-modal" *ngIf="showDeleteConfirmation">
+    <div class="modal-content">
+        <div class="modal-header"><h2>Confirm Deletion</h2></div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete the account "<strong>{{ accountToDelete?.name }}</strong>"?</p>
+            <p class="warning-text">This will delete the account AND all of its ledger entries. This action cannot be undone.</p>
+        </div>
+        <div class="modal-actions">
+            <button class="cancel-button" (click)="cancelDelete()">Cancel</button>
+            <button class="delete-button" (click)="confirmDelete()">Yes, Delete</button>
+        </div>
+    </div>
+</div>

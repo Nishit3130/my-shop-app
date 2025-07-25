@@ -1,0 +1,265 @@
+<div class="credit-debit-container">
+  <div class="header-section">
+    <h1 class="page-title">Credit Management</h1>
+  </div>
+
+  <div class="summary-section">
+    <div class="summary-card">
+      <div class="summary-icon"><span class="material-icons">account_balance</span></div>
+      <div class="summary-details">
+        <h3>Total Pending Credit</h3>
+        <p class="summary-value">₹{{ pendingCredit.toFixed(2) }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="filter-section">
+    <div class="search-bar">
+      <span class="material-icons">search</span>
+      <input type="text"
+             placeholder="Search by customer name, phone, or bill no..."
+             [(ngModel)]="searchTerm"
+             (input)="onFilterChange()"> </div>
+
+    <div class="filter-buttons">
+      <button [class.active]="filterStatus === 'all'" (click)="setFilter('all')">All Credit Bills</button>
+      <button [class.active]="filterStatus === 'pending'" (click)="setFilter('pending')">Pending Only</button>
+      <button [class.active]="filterStatus === 'paid'" (click)="setFilter('paid')">Paid Only</button>
+    </div>
+  </div>
+
+  <div class="bills-section">
+    <div class="table-responsive">
+      <table class="data-table" *ngIf="filteredBills.length > 0; else noBillsTemplate">
+        <thead>
+          <tr>
+            <th>Bill No.</th>
+            <th>Date</th>
+            <th>Customer</th>
+            <th>Phone</th>
+            <th class="text-right">Total Amt (₹)</th>
+            <th class="text-right">Amt Paid (₹)</th>
+            <th class="text-right">Outstanding (₹)</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let bill of filteredBills">
+            <td>{{ bill.billNo || bill.id.substring(0, 8) }}</td>
+            <td>{{ bill.createdAt | date:'mediumDate' }}</td>
+            <td>{{ bill.customerName }}</td>
+            <td>{{ bill.customerPhone || '-' }}</td>
+            <td class="text-right">{{ bill.total.toFixed(2) }}</td>
+            <td class="text-right">{{ bill.amountPaid.toFixed(2) }}</td>
+            <td class="text-right bold">{{ (bill.total - bill.amountPaid).toFixed(2) }}</td>
+            <td>
+              <span class="badge" [class.paid]="bill.total - bill.amountPaid <= 0.005"
+                [class.pending]="bill.total - bill.amountPaid > 0.005">
+                {{ (bill.total - bill.amountPaid <= 0.005) ? 'PAID' : 'PENDING' }}
+              </span>
+            </td>
+            <td class="actions-cell">
+              <button class="icon-button" title="View Details" (click)="viewBill(bill)">
+                <span class="material-icons">visibility</span>
+              </button>
+              <button class="icon-button paid-button"
+                      title="Mark as Fully Paid"
+                      *ngIf="(bill.total - bill.amountPaid > 0.005)"
+                      (click)="markAsPaid(bill.id)">
+                <span class="material-icons">price_check</span>
+              </button>
+              <button class="icon-button payment-button"
+                      title="Record Payment"
+                      *ngIf="(bill.total - bill.amountPaid > 0.005)"
+                      (click)="openPaymentModal(bill)">
+                <span class="material-icons">payment</span>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <ng-template #noBillsTemplate>
+        <div class="no-bills" *ngIf="filteredBills.length === 0">
+          <p *ngIf="searchTerm">No credit bills found matching "{{ searchTerm }}".</p>
+          <p *ngIf="!searchTerm">No credit bills found for the selected filter.</p>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+
+  <div class="modal" *ngIf="selectedBill">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Credit Bill Details ({{ selectedBill.billNo || selectedBill.id.substring(0,8) }})</h2>
+        <button class="icon-button" (click)="closeModal()">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+      <div class="modal-body print-section">
+        <div class="print-header" *ngIf="settings">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="font-size:1.05em;color:#444;">
+              {{ settings.address }}<br>
+              <span *ngIf="settings.gstin">GSTIN: {{ settings.gstin }}</span>
+            </div>
+            <div style="text-align: center;">
+              <img *ngIf="settings.companyLogo" [src]="settings.companyLogo" alt="Logo" style="width:48px;height:48px;border-radius:50%;margin-bottom:4px;" />
+              <div style="font-size:1.5em;font-weight:bold;letter-spacing:1px;">{{ settings.companyName }}</div>
+            </div>
+            <div style="font-size:1.05em;color:#444;text-align:right;">
+              <span *ngIf="settings.phone">Ph: {{ settings.phone }}</span>
+              <span *ngIf="settings.email"> | Email: {{ settings.email }}</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0 0 0;">
+          <div>
+            <b>Name:</b> {{ selectedBill.customerName }}<br>
+            <b *ngIf="selectedBill.customerPhone">Phone:</b> <span *ngIf="selectedBill.customerPhone">{{ selectedBill.customerPhone }}</span>
+          </div>
+          <div style="text-align:right;">
+            <span>Date: {{ selectedBill.createdAt | date:'full' }}</span><br>
+            <span>Bill No: {{ selectedBill.billNo || selectedBill.id.substring(0,8) }}</span>
+          </div>
+        </div>
+        <hr>
+        <h4>Items</h4>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th class="text-center">Qty</th>
+              <th class="text-right">Price</th>
+              <th class="text-right">Discount</th>
+              <th class="text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of selectedBill.items">
+              <td>{{ item.productName }}</td>
+              <td class="text-center">{{ item.quantity }}</td>
+              <td class="text-right">{{ settings?.currencySymbol || '₹' }}{{ item.price.toFixed(2) }}</td>
+              <td class="text-right">{{ item.discountValue ? (item.discountValue.toFixed(2) + (item.discountType === 'PERCENT' ? '%' : (settings?.currencySymbol || '₹'))) : '-' }}</td>
+              <td class="text-right">{{ settings?.currencySymbol || '₹' }}{{ item.total.toFixed(2) }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <hr>
+        <div class="summary-view">
+          <div class="summary-row">
+            <span>Subtotal</span>
+            <span>{{ settings?.currencySymbol || '₹' }}{{ (selectedBill.subtotal + (selectedBill.totalItemDiscount || 0)).toFixed(2) }}</span>
+          </div>
+          <div class="summary-row" *ngIf="selectedBill.totalItemDiscount && selectedBill.totalItemDiscount > 0">
+            <span>Total Item Discounts</span>
+            <span>- {{ settings?.currencySymbol || '₹' }}{{ selectedBill.totalItemDiscount.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row" *ngIf="selectedBill.discount && selectedBill.discount > 0">
+            <span>Bill Discount</span>
+            <span>- {{ settings?.currencySymbol || '₹' }}{{ selectedBill.discount.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row" *ngIf="selectedBill.packingCharge && selectedBill.packingCharge > 0">
+            <span>Packing Charge</span>
+            <span>{{ settings?.currencySymbol || '₹' }}{{ selectedBill.packingCharge.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row" *ngIf="selectedBill.handlingCharge && selectedBill.handlingCharge > 0">
+            <span>Handling Charge</span>
+            <span>{{ settings?.currencySymbol || '₹' }}{{ selectedBill.handlingCharge.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row" *ngIf="selectedBill.deliveryCharge && selectedBill.deliveryCharge > 0">
+            <span>Delivery Charge</span>
+            <span>{{ settings?.currencySymbol || '₹' }}{{ selectedBill.deliveryCharge.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row" *ngIf="selectedBill.tax && selectedBill.tax > 0">
+            <span>Tax</span>
+            <span>{{ settings?.currencySymbol || '₹' }}{{ selectedBill.tax.toFixed(2) }}</span>
+          </div>
+          <hr>
+          <div class="summary-row total">
+            <span>Grand Total:</span><span>{{ settings?.currencySymbol || '₹' }}{{ selectedBill.total.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row">
+            <span>Amount Paid:</span><span>{{ settings?.currencySymbol || '₹' }}{{ selectedBill.amountPaid.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row outstanding" *ngIf="(selectedBill.total - selectedBill.amountPaid) > 0.005">
+            <span>Balance Due</span>
+            <span>{{ settings?.currencySymbol || '₹' }}{{ (selectedBill.total - selectedBill.amountPaid).toFixed(2) }}</span>
+          </div>
+        </div>
+        <div class="print-footer" *ngIf="settings && settings.invoiceFooter">
+          <hr>
+          <div [innerHTML]="settings.invoiceFooter"></div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="action-button" (click)="printBill()">
+          <span class="material-icons">print</span> Print
+        </button>
+        <button type="button" class="action-button primary"
+                *ngIf="selectedBill && (selectedBill.total - selectedBill.amountPaid > 0.005)"
+                (click)="markAsPaid(selectedBill.id)">
+          <span class="material-icons">price_check</span> Mark as Fully Paid
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" *ngIf="showPaymentModal && billForPayment">
+    <div class="modal-content payment-modal-content">
+      <div class="modal-header">
+        <h2>Record Payment for Bill #{{ billForPayment.billNo || billForPayment.id.substring(0,8) }}</h2>
+        <button type="button" class="icon-button" (click)="closePaymentModal()">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form #paymentForm="ngForm" (ngSubmit)="submitPayment()">
+          <div class="form-group">
+            <label>Customer:</label>
+            <p>{{ billForPayment.customerName }}</p>
+          </div>
+          <div class="form-group">
+            <label>Total Bill Amount:</label>
+            <p>₹{{ billForPayment.total.toFixed(2) }}</p>
+          </div>
+          <div class="form-group">
+            <label>Amount Already Paid:</label>
+            <p>₹{{ billForPayment.amountPaid.toFixed(2) }}</p>
+          </div>
+          <div class="form-group">
+            <label>Current Outstanding Amount:</label>
+            <p><strong>₹{{ (billForPayment.total - billForPayment.amountPaid).toFixed(2) }}</strong></p>
+          </div>
+          <hr>
+          <div class="form-group">
+            <label for="paymentAmount">Payment Amount (₹):</label>
+            <input type="number" id="paymentAmount" class="form-control" name="paymentAmount" [(ngModel)]="paymentAmount" min="0.01" step="0.01" required>
+          </div>
+          <div class="form-group">
+            <label for="paymentDate">Payment Date & Time:</label>
+            <input type="datetime-local" id="paymentDate" class="form-control" name="paymentDate" [(ngModel)]="paymentDate" required>
+          </div>
+          <div class="form-group">
+            <label for="paymentMethod">Payment Method:</label>
+            <select id="paymentMethod" name="paymentMethod" class="form-control" [(ngModel)]="paymentMethod">
+              <option value="CASH">Cash</option>
+              <option value="CARD">Card</option>
+              <option value="UPI">UPI</option>
+              <option value="BANK_TRANSFER">Bank Transfer</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="paymentNotes">Notes (Optional):</label>
+            <textarea id="paymentNotes" name="paymentNotes" class="form-control" [(ngModel)]="paymentNotes" rows="2"></textarea>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="cancel-button" (click)="closePaymentModal()">Cancel</button>
+            <button type="submit" class="action-button primary" [disabled]="!paymentForm.valid || paymentAmount <= 0">Record Payment</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

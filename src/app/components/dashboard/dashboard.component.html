@@ -1,0 +1,128 @@
+<div class="dashboard-container">
+  <h1 class="page-title">Dashboard</h1>
+  
+  <div class="stats-container">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <span class="material-icons">inventory_2</span>
+      </div>
+      <div class="stat-details">
+        <h3>Total Products</h3>
+        <p class="stat-value">{{ totalProducts }}</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon">
+        <span class="material-icons">receipt_long</span>
+      </div>
+      <div class="stat-details">
+        <h3>Today's Sales</h3>
+        <p class="stat-value">₹{{ todaySales.toFixed(2) }}</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon">
+        <span class="material-icons">credit_card</span>
+      </div>
+      <div class="stat-details">
+        <h3>Pending Credit</h3>
+        <p class="stat-value">₹{{ pendingCredit.toFixed(2) }}</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon">
+        <span class="material-icons">receipt</span>
+      </div>
+      <div class="stat-details">
+        <h3>Total Bills</h3>
+        <p class="stat-value">{{ totalBills }}</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="dashboard-sections">
+    <div class="section recent-bills">
+      <h2>Recent Bills</h2>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Bill #</th>
+              <th>Customer</th>
+              <th>Date</th>
+              <th>Amount</th>
+              <th>Type</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let bill of recentBills">
+              <td>{{ bill.id.substr(0, 8) }}</td>
+              <td>{{ bill.customerName }}</td>
+              <td>{{ bill.createdAt | date:'short' }}</td>
+              <td>₹{{ bill.total.toFixed(2) }}</td>
+              <td>
+                <span [class]="bill.paymentType === 'CASH' ? 'badge cash' : 'badge credit'">
+                  {{ bill.paymentType }}
+                </span>
+              </td>
+            </tr>
+            <tr *ngIf="recentBills.length === 0">
+              <td colspan="5" class="no-data">No recent bills</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="section-footer">
+        <a routerLink="/bills" class="view-all-link">View All Bills</a>
+      </div>
+    </div>
+    
+    <div class="section low-stock">
+      <h2>Low Stock Products</h2>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Price</th>
+              <th>Current Stock</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let product of lowStockProducts">
+              <td>{{ product.name }}</td>
+              <td>₹{{ product.price.toFixed(2) }}</td>
+              <td>
+                <span class="stock-badge low">{{ product.stock }}</span>
+              </td>
+            </tr>
+            <tr *ngIf="lowStockProducts.length === 0">
+              <td colspan="3" class="no-data">No low stock products</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="section-footer">
+        <a routerLink="/products" class="view-all-link">Manage Products</a>
+      </div>
+    </div>
+  </div>
+  
+  <div class="dashboard-actions">
+    <button class="action-button" routerLink="/billing">
+      <span class="material-icons">add_shopping_cart</span>
+      New Bill
+    </button>
+    <button class="action-button" routerLink="/products">
+      <span class="material-icons">add_circle</span>
+      Add Product
+    </button>
+    <button class="action-button" routerLink="/reports">
+      <span class="material-icons">summarize</span>
+      Reports
+    </button>
+  </div>
+</div>

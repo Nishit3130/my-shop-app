@@ -1,0 +1,80 @@
+<div class="ledger-container print-section" *ngIf="!isLoading; else loadingLedger">
+  <ng-container *ngIf="supplier; else noSupplier">
+    <div class="ledger-header noprint">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2>Ledger Statement: {{ supplier.name }}</h2>
+        <div>
+          <button class="action-button print-button" (click)="printLedger()" title="Print Ledger">
+            <span class="material-icons">print</span> Print
+          </button>
+          <a routerLink="/suppliers" class="action-button secondary-action-button" title="Back to Supplier List" style="margin-left: 10px;">
+            <span class="material-icons">arrow_back</span> Back to List
+          </a>
+        </div>
+      </div>
+    </div>
+    
+    <div class="print-header">
+      <div class="receipt-company-details">
+        <h2>{{ appSettings.companyName }}</h2>
+        <p>{{ appSettings.address }}</p>
+        <p>Phone: {{ appSettings.phone }} | Email: {{ appSettings.email }}</p>
+        <p *ngIf="appSettings.gstin">GSTIN: {{ appSettings.gstin }}</p>
+      </div>
+      <h2>Supplier Ledger Statement</h2>
+      <p><strong>Supplier:</strong> {{ supplier.name }}</p>
+      <p *ngIf="supplier.phone"><strong>Phone:</strong> {{ supplier.phone }}</p>
+      <p><strong>Statement Date:</strong> {{ today | date:'dd-MMM-yyyy' }}</p>
+    </div>
+
+    <div class="balance-summary">
+      <h3>
+        Current Balance: 
+        <span class="amount-due">{{ appSettings.currencySymbol }}{{ ledgerEndingBalance.toFixed(2) }} (Payable to Supplier)</span>
+      </h3>
+    </div>
+
+    <div class="transactions-table-container" *ngIf="transactions.length > 0; else noTransactions">
+      <h3>Transaction History</h3>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Description</th>
+              <th>Ref ID</th>
+              <th class="text-right">Payment (Debit)</th>
+              <th class="text-right">Purchase (Credit)</th>
+              <th class="text-right">Balance ({{ appSettings.currencySymbol }})</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let tx of transactions">
+              <td>{{ tx.date | date:'dd-MMM-yyyy' }}</td>
+              <td>{{ tx.type }}</td>
+              <td>{{ tx.description }}</td>
+              <td>{{ tx.referenceId }}</td>
+              <td class="text-right debit-amount">{{ tx.debit !== null ? appSettings.currencySymbol + tx.debit.toFixed(2) : '-' }}</td>
+              <td class="text-right credit-amount">{{ tx.credit !== null ? appSettings.currencySymbol + tx.credit.toFixed(2) : '-' }}</td>
+              <td class="text-right balance-col">{{ tx.balance.toFixed(2) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <ng-template #noTransactions>
+      <p>No transactions found for this supplier.</p>
+    </ng-template>
+  </ng-container>
+
+  <ng-template #noSupplier>
+    <p>Supplier not found.</p>
+  </ng-template>
+</div>
+
+<ng-template #loadingLedger>
+  <div class="loading-indicator">
+    <p>Loading ledger data...</p>
+  </div>
+</ng-template>

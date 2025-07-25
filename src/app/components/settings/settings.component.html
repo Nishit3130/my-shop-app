@@ -1,0 +1,82 @@
+<div class="settings-container">
+  <div class="header-section">
+    <h1 class="page-title">Application Settings</h1>
+  </div>
+
+  <form [formGroup]="settingsForm" (ngSubmit)="saveSettings()" class="settings-form">
+    <div class="form-card">
+      <div class="form-group">
+        <label for="companyName">Company Name</label>
+        <input type="text" id="companyName" formControlName="companyName" class="form-control">
+        <div *ngIf="false && settingsForm.get('companyName')?.invalid && settingsForm.get('companyName')?.touched" class="error-message">
+          Company name is required.
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="address">Address</label>
+        <textarea id="address" formControlName="address" rows="3" class="form-control"></textarea>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input type="tel" id="phone" formControlName="phone" class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" formControlName="email" class="form-control">
+           <div *ngIf="settingsForm.get('email')?.errors?.['email']" class="error-message">
+           Please enter a valid email address.
+          </div>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="gstin">GSTIN / Tax ID</label>
+          <input type="text" id="gstin" formControlName="gstin" class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label for="currencySymbol">Currency Symbol</label>
+          <input type="text" id="currencySymbol" formControlName="currencySymbol" class="form-control">
+          <div *ngIf="settingsForm.get('currencySymbol')?.invalid && settingsForm.get('currencySymbol')?.touched" class="error-message">
+            Currency symbol is required.
+          </div>
+        </div>
+      </div>
+
+      <hr>
+      <h3 class="form-section-title">Invoice Customization</h3>
+
+      <div class="form-group">
+        <label>Company Logo</label>
+        <div class="logo-preview" *ngIf="settingsForm.get('companyLogo')?.value">
+          <img [src]="settingsForm.get('companyLogo')?.value" alt="Company Logo Preview">
+          <button type="button" class="icon-button delete" (click)="removeLogo()" title="Remove Logo">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+        <input type="file" id="logo-upload" class="file-input" (change)="onLogoSelect($event)" accept="image/png, image/jpeg">
+        <label for="logo-upload" class="action-button secondary-action-button">
+          <span class="material-icons">upload</span>
+          {{ settingsForm.get('companyLogo')?.value ? 'Change Logo' : 'Upload Logo' }}
+        </label>
+        <small class="form-text">Recommended: PNG or JPG, less than 500KB.</small>
+      </div>
+
+      <div class="form-group">
+        <label for="invoiceFooter">Invoice Footer Text (Optional)</label>
+        <textarea id="invoiceFooter" formControlName="invoiceFooter" rows="4" class="form-control" placeholder="e.g., Terms & Conditions, Bank Details, Thank You Note..."></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="action-button primary-action-button" [disabled]="settingsForm.invalid">
+          <span class="material-icons">save</span>
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </form>
+</div>

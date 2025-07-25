@@ -1,0 +1,120 @@
+{
+  "name": "my-shop-app",
+  "version": "1.0.0",
+  "main": "electron.js",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "build:electron": "ng build --configuration electron",
+    "electron:dev": "npm run build:electron && electron .",
+    "electron:package:win": "npm run build:electron && electron-builder --win --x64",
+    "electron:package:mac": "npm run build:electron && electron-builder --mac",
+    "electron:package:linux": "npm run build:electron && electron-builder --linux",
+    "electron:build": "npm run build:electron && electron-builder"
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/animations": "^19.2.14",
+    "@angular/common": "^19.2.0",
+    "@angular/compiler": "^19.2.0",
+    "@angular/core": "^19.2.0",
+    "@angular/forms": "^19.2.0",
+    "@angular/platform-browser": "^19.2.0",
+    "@angular/platform-browser-dynamic": "^19.2.0",
+    "@angular/router": "^19.2.0",
+    "ngx-toastr": "^19.0.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0",
+    "zone.js": "~0.15.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^19.2.11",
+    "@angular/cli": "^19.2.11",
+    "@angular/compiler-cli": "^19.2.0",
+    "@types/jasmine": "~5.1.0",
+    "electron": "^30.0.0",
+    "electron-builder": "^26.0.12",
+    "jasmine-core": "~5.6.0",
+    "karma": "~6.4.0",
+    "karma-chrome-launcher": "~3.2.0",
+    "karma-coverage": "~2.2.0",
+    "karma-jasmine": "~5.1.0",
+    "karma-jasmine-html-reporter": "~2.1.0",
+    "typescript": "~5.7.2"
+  },
+  "build": {
+    "appId": "com.yourcompany.myshopapp",
+    "productName": "My Shop App",
+    "copyright": "Copyright © 2024 Your Name/Company",
+    "directories": {
+      "output": "release/",
+      "buildResources": "src/assets"
+    },
+    "files": [
+      "**/*",
+      "!**/*.ts",
+      "!*.code-workspace",
+      "!LICENSE.md",
+      "!README.md",
+      "!.angular/",
+      "!.vscode/",
+      "!e2e/",
+      "!node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme,test,__tests__,tests,powered-test,example,examples,sample,samples,demo,demos,doc,docs,man,benchmark,logo.png,Makefile,Gulpfile.js,Gruntfile.js,.npmignore,.eslintrc,.jshintrc,.travis.yml,.nvmrc,.coveralls.yml,bower.json,.gitmodules,.*.yml,.*.sh,.*.txt}",
+      "!node_modules/**/*.map",
+      "!node_modules/**/*.d.ts",
+      "!node_modules/.bin",
+      "!src/",
+      "dist/my-shop-app-electron/browser/**/*",
+      "electron.js",
+      "preload.js",
+      "!package-lock.json",
+      {
+        "from": ".",
+        "to": ".",
+        "filter": [
+          "package.json"
+        ]
+      }
+    ],
+    "win": {
+      "icon": "src/assets/KSB.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "mac": {
+      "icon": "src/assets/KSB.png",
+      "category": "public.app-category.business"
+    },
+    "linux": {
+      "icon": "src/assets/KSB.png",
+      "category": "Office;Finance;",
+      "target": [
+        "AppImage",
+        "deb",
+        "tar.gz"
+      ]
+    }
+  }
+}

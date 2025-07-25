@@ -1,0 +1,160 @@
+<div class="reports-container">
+  <div class="header-section">
+    <h1 class="page-title">Reports</h1>
+    <div class="date-filter">
+      <label for="reportType">Report Type:</label>
+      <select id="reportType" class="form-control" [(ngModel)]="reportType" (change)="generateReport()">
+        <option value="daily">Daily Sales</option>
+        <option value="range">Date Range Sales</option>
+        <option value="product_performance">Product Performance</option>
+        <option value="customer_sales">Customer Sales</option>
+        <option value="profitability">Profitability</option>
+      </select>
+      
+      <ng-container *ngIf="reportType === 'daily'">
+        <label for="reportDate">Date:</label>
+        <input type="date" id="reportDate" class="form-control" [(ngModel)]="reportDate" (change)="generateReport()" [max]="todayString">
+      </ng-container>
+      <ng-container *ngIf="reportType !== 'daily'">
+        <label for="startDate">From:</label>
+        <input type="date" id="startDate" class="form-control" [(ngModel)]="startDate" (change)="generateReport()" [max]="todayString">
+        <label for="endDate">To:</label>
+        <input type="date" id="endDate" class="form-control" [(ngModel)]="endDate" (change)="generateReport()" [max]="todayString">
+      </ng-container>
+    </div>
+  </div>
+  
+  <div class="report-content" [ngSwitch]="reportType">
+    
+    <div *ngSwitchCase="'daily'">
+        <div class="report-card" *ngIf="dailyReport">
+            <h2>Sales for {{ dailyReport.date | date:'mediumDate' }}</h2>
+            <div class="report-metrics">
+              <div class="metric"><div class="metric-value">₹{{ dailyReport.totalSales.toFixed(2) }}</div><div class="metric-label">Total Sales</div></div>
+              <div class="metric"><div class="metric-value">{{ dailyReport.totalBills }}</div><div class="metric-label">Number of Bills</div></div>
+              <div class="metric"><div class="metric-value">₹{{ dailyReport.cashSales.toFixed(2) }}</div><div class="metric-label">Cash Sales</div></div>
+              <div class="metric"><div class="metric-value">₹{{ dailyReport.creditSales.toFixed(2) }}</div><div class="metric-label">Credit Sales</div></div>
+              <div class="metric"><div class="metric-value">₹{{ getAverageBillValue(dailyReport).toFixed(2) }}</div><div class="metric-label">Avg. Bill Value</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div *ngSwitchCase="'range'">
+      <div class="table-container" *ngIf="dateRangeReport.length > 0">
+        <h2>Sales from {{ startDate | date:'mediumDate' }} to {{ endDate | date:'mediumDate' }}</h2>
+        <table class="data-table">
+          <thead><tr><th>Date</th><th>Bills</th><th>Total Sales</th><th>Cash Sales</th><th>Credit Sales</th><th>Avg. Bill Value</th></tr></thead>
+          <tbody><tr *ngFor="let day of dateRangeReport"><td>{{ day.date | date:'mediumDate' }}</td><td>{{ day.totalBills }}</td><td>₹{{ day.totalSales.toFixed(2) }}</td><td>₹{{ day.cashSales.toFixed(2) }}</td><td>₹{{ day.creditSales.toFixed(2) }}</td><td>₹{{ day.averageBillValue.toFixed(2) }}</td></tr></tbody>
+        </table>
+        <div class="income-expense-summary">
+          <h3>Income/Expense Summary (Range)</h3>
+          <div class="metric"><div class="metric-value income">₹{{ incomeRange.toFixed(2) }}</div><div class="metric-label">Total Income</div></div>
+          <div class="metric"><div class="metric-value expense">₹{{ expenseRange.toFixed(2) }}</div><div class="metric-label">Total Expense</div></div>
+          <div class="metric"><div class="metric-label">Breakdown</div></div>
+          <table class="data-table small-table" *ngIf="transactionsRange.length">
+            <thead><tr><th>Date</th><th>Description</th><th>Type</th><th>Category</th><th class="text-right">Amount (₹)</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let t of transactionsRange">
+                <td>{{ t.date | date:'mediumDate' }}</td>
+                <td>{{ t.description }}</td>
+                <td>{{ t.transactionType }}</td>
+                <td>{{ t.category }}</td>
+                <td class="text-right">₹{{ t.amount.toFixed(2) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div *ngSwitchCase="'product_performance'" class="table-container">
+      <h2>Product Performance Report</h2>
+      <table class="data-table">
+        <thead><tr><th>Product Name</th><th class="text-right">Quantity Sold</th><th class="text-right">Total Sales Value (₹)</th></tr></thead>
+        <tbody><tr *ngFor="let item of productPerformanceReport"><td>{{ item.productName }}</td><td class="text-right">{{ item.totalQuantitySold }}</td><td class="text-right">{{ item.totalSalesValue.toFixed(2) }}</td></tr></tbody>
+      </table>
+    </div>
+
+    <div *ngSwitchCase="'customer_sales'" class="table-container">
+      <h2>Top Customers by Sales</h2>
+      <table class="data-table">
+        <thead><tr><th>Customer Name</th><th class="text-right">Bills Generated</th><th class="text-right">Total Spent (₹)</th></tr></thead>
+        <tbody><tr *ngFor="let cust of customerSalesReport"><td>{{ cust.customerName }}</td><td class="text-right">{{ cust.billCount }}</td><td class="text-right">{{ cust.totalAmountSpent.toFixed(2) }}</td></tr></tbody>
+      </table>
+    </div>
+
+    <div *ngSwitchCase="'profitability'" class="table-container">
+      <h2>Product Profitability Report</h2>
+      <table class="data-table">
+        <thead><tr><th>Product Name</th><th class="text-right">Qty Sold</th><th class="text-right">Total Sales (₹)</th><th class="text-right">Total Cost (₹)</th><th class="text-right">Gross Profit (₹)</th></tr></thead>
+        <tbody><tr *ngFor="let item of profitabilityReport"><td>{{ item.productName }}</td><td class="text-right">{{ item.totalQuantitySold }}</td><td class="text-right">{{ item.totalSalesValue.toFixed(2) }}</td><td class="text-right">{{ item.totalCost.toFixed(2) }}</td><td class="text-right profit-cell" [class.loss]="item.grossProfit < 0">{{ item.grossProfit.toFixed(2) }}</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- Transaction Log Summary for Daily Report -->
+    <div class="transaction-log-summary">
+      <h3>All Transactions Log (Today)</h3>
+      <table class="data-table small-table" *ngIf="billsToday.length || transactionsToday.length || externalLedgerEntriesToday.length || paymentsToday.length">
+        <thead>
+          <tr>
+            <th>Date/Time</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Customer/Party</th>
+            <th>Payment Type</th>
+            <th class="text-right">Amount (₹)</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Sales Section -->
+          <tr *ngIf="billsToday.length" class="section-header"><td colspan="7"><span class="badge badge-sale">Sales</span> (Total: ₹{{ getTotalSalesToday() }})</td></tr>
+          <tr *ngFor="let b of billsToday">
+            <td>{{ b.createdAt | date:'medium' }}</td>
+            <td><span class="badge badge-sale">Sale</span></td>
+            <td>{{ b.billNo }}</td>
+            <td>{{ b.customerName }}</td>
+            <td>{{ b.paymentType }}</td>
+            <td class="text-right">₹{{ b.total.toFixed(2) }}</td>
+            <td>Billing</td>
+          </tr>
+          <!-- Payments Section -->
+          <tr *ngIf="paymentsToday.length" class="section-header"><td colspan="7"><span class="badge badge-payment">Payments</span> (Total: ₹{{ getTotalPaymentsToday() }})</td></tr>
+          <tr *ngFor="let p of paymentsToday">
+            <td>{{ p.paymentDate | date:'medium' }}</td>
+            <td><span class="badge badge-payment">Payment</span></td>
+            <td>{{ p.notes || '-' }}</td>
+            <td>{{ getPaymentCustomerName(p.customerId) }}</td>
+            <td>{{ p.paymentMethod }}</td>
+            <td class="text-right payment-amount">₹{{ p.amount.toFixed(2) }}</td>
+            <td>Payment</td>
+          </tr>
+          <!-- Income/Expense Section -->
+          <tr *ngIf="transactionsToday.length" class="section-header"><td colspan="7"><span class="badge badge-income-expense">Income/Expense</span> (Net: <span [ngClass]="{'income-amount': incomeToday >= expenseToday, 'expense-amount': incomeToday < expenseToday}">₹{{ getNetIncomeExpenseToday() }}</span>)</td></tr>
+          <tr *ngFor="let t of transactionsToday">
+            <td>{{ t.date | date:'medium' }}</td>
+            <td>
+              <span class="badge" [ngClass]="{'badge-income': t.transactionType === 'INCOME', 'badge-expense': t.transactionType === 'EXPENSE'}">{{ t.transactionType }}</span>
+            </td>
+            <td>{{ t.description }}</td>
+            <td>{{ t.category }}</td>
+            <td>-</td>
+            <td class="text-right" [ngClass]="{'income-amount': t.transactionType === 'INCOME', 'expense-amount': t.transactionType === 'EXPENSE'}">₹{{ t.amount.toFixed(2) }}</td>
+            <td>Income/Expense</td>
+          </tr>
+          <!-- Credit/Debit Section -->
+          <tr *ngIf="externalLedgerEntriesToday.length" class="section-header"><td colspan="7"><span class="badge badge-credit-debit">Credit/Debit</span> (Total: ₹{{ getTotalCreditDebitToday() }})</td></tr>
+          <tr *ngFor="let e of externalLedgerEntriesToday">
+            <td>{{ e.date | date:'medium' }}</td>
+            <td><span class="badge" [ngClass]="{'badge-credit': e.type === 'CREDIT', 'badge-debit': e.type === 'DEBIT'}">{{ e.type }}</span></td>
+            <td>{{ e.description }}</td>
+            <td>{{ getExternalAccountName(e.accountId) }}</td>
+            <td>-</td>
+            <td class="text-right" [ngClass]="{'credit-amount': e.type === 'CREDIT', 'debit-amount': e.type === 'DEBIT'}">₹{{ e.amount.toFixed(2) }}</td>
+            <td>Credit/Debit</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

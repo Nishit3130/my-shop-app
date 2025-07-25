@@ -1,0 +1,116 @@
+<div class="product-management-container">
+  <div class="header-section">
+    <h1 class="page-title">Product Management</h1>
+    <button class="action-button" (click)="openProductForm()">
+      <span class="material-icons">add</span> Add Product
+    </button>
+  </div>
+  
+  <div class="search-section">
+    <div class="search-bar">
+      <span class="material-icons">search</span>
+      <input type="text" placeholder="Search products..." [(ngModel)]="searchTerm" (input)="filterProducts()">
+    </div>
+  </div>
+  
+  <div class="product-list-container">
+    <div *ngIf="filteredProducts.length === 0" class="no-products">
+      <p>No products found. Add some products to get started.</p>
+    </div>
+    
+    <div *ngIf="filteredProducts.length > 0" class="product-grid">
+      <div class="product-card" *ngFor="let product of filteredProducts">
+        <div class="product-header">
+          <h3 class="product-name">{{ product.name }}</h3>
+          <div class="product-actions">
+            <button class="icon-button" (click)="editProduct(product)">
+              <span class="material-icons">edit</span>
+            </button>
+            <button class="icon-button delete" (click)="deleteProduct(product.id)">
+              <span class="material-icons">delete</span>
+            </button>
+          </div>
+        </div>
+        <div class="product-details">
+          <p class="product-price">₹{{ product.price.toFixed(2) }}</p>
+          <p class="product-stock" [class.low-stock]="product.stock < 10">
+            Stock: {{ product.stock }}
+          </p>
+          <p class="product-category" *ngIf="product.category">
+            Category: {{ product.category }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Product Form Modal -->
+  <div class="modal" *ngIf="showProductForm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>{{ editMode ? 'Edit Product' : 'Add New Product' }}</h2>
+        <button class="icon-button" (click)="closeProductForm()">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="productForm" (ngSubmit)="saveProduct()">
+          <div class="form-group">
+            <label for="name">Product Name</label>
+            <input type="text" id="name" formControlName="name" required>
+            <div class="error-message" *ngIf="productForm.get('name')?.invalid && productForm.get('name')?.touched">
+              Product name is required
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="price">Price (₹)</label>
+            <input type="number" id="price" formControlName="price" min="0" step="0.01" required>
+            <div class="error-message" *ngIf="productForm.get('price')?.invalid && productForm.get('price')?.touched">
+              Valid price is required
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="stock">Stock Quantity</label>
+            <input type="number" id="stock" formControlName="stock" min="0" required>
+            <div class="error-message" *ngIf="productForm.get('stock')?.invalid && productForm.get('stock')?.touched">
+              Valid stock quantity is required
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="category">Category (Optional)</label>
+            <input type="text" id="category" formControlName="category">
+          </div>
+          
+          <div class="form-group">
+            <label for="description">Description (Optional)</label>
+            <textarea id="description" formControlName="description" rows="3"></textarea>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" class="cancel-button" (click)="closeProductForm()">Cancel</button>
+            <button type="submit" class="save-button" [disabled]="productForm.invalid">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Delete Confirmation Modal -->
+  <div class="modal" *ngIf="showDeleteConfirmation">
+    <div class="modal-content confirmation-modal">
+      <div class="modal-header">
+        <h2>Confirm Delete</h2>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete this product? This action cannot be undone.</p>
+        <div class="form-actions">
+          <button class="cancel-button" (click)="cancelDelete()">Cancel</button>
+          <button class="delete-button" (click)="confirmDelete()">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

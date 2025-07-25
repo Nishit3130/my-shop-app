@@ -1,0 +1,56 @@
+<div class="edit-container">
+  <div class="header-section">
+    <h1 class="page-title">{{ pageTitle }}</h1>
+    <a routerLink="/suppliers" class="action-button secondary-action-button">
+      <span class="material-icons">arrow_back</span> Back to Supplier List
+    </a>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-indicator">
+    <p>Loading supplier details...</p>
+  </div>
+
+  <form [formGroup]="supplierForm" (ngSubmit)="saveSupplier()" *ngIf="!isLoading" class="edit-form">
+    <div class="form-group">
+      <label for="name">Supplier Name</label>
+      <input type="text" id="name" formControlName="name" class="form-control">
+      <div *ngIf="supplierForm.get('name')?.invalid && supplierForm.get('name')?.touched" class="error-message">
+        Supplier name is required.
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="phone">Phone Number (Optional)</label>
+      <input type="tel" id="phone" formControlName="phone" class="form-control">
+      <div *ngIf="supplierForm.get('phone')?.errors?.['pattern']" class="error-message">
+        Please enter a valid phone number (10-15 digits).
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email (Optional)</label>
+      <input type="email" id="email" formControlName="email" class="form-control">
+       <div *ngIf="supplierForm.get('email')?.errors?.['email']" class="error-message">
+        Please enter a valid email address.
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label for="gstin">GSTIN (Optional)</label>
+      <input type="text" id="gstin" formControlName="gstin" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label for="address">Address (Optional)</label>
+      <textarea id="address" formControlName="address" rows="3" class="form-control"></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="cancel-button" (click)="cancel()" [disabled]="isSaving">Cancel</button>
+      <button type="submit" class="action-button primary-action-button" [disabled]="supplierForm.invalid || isSaving">
+        <span class="material-icons">save</span>
+        {{ isSaving ? 'Saving...' : 'Save Changes' }}
+      </button>
+    </div>
+  </form>
+</div>

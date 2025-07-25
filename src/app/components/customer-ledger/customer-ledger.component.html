@@ -1,0 +1,92 @@
+<div class="ledger-container print-section" *ngIf="!isLoading; else loadingLedger">
+  <ng-container *ngIf="customer; else noCustomerOrLoading">
+    <div class="ledger-header noprint"> <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2>Ledger Statement: {{ customer.name }}</h2>
+        <div>
+          <button class="action-button print-button" (click)="printLedger()" title="Print Ledger">
+            <span class="material-icons">print</span> Print
+          </button>
+          <a routerLink="/customers" class="action-button secondary-action-button" title="Back to Customer List" style="margin-left: 10px;">
+            <span class="material-icons">arrow_back</span> Back to List
+          </a>
+        </div>
+      </div>
+    </div>
+    
+    <div class="print-header">
+        <h2>Ledger Statement</h2>
+        <p><strong>Customer:</strong> {{ customer.name }}</p>
+        <p *ngIf="customer.phone"><strong>Phone:</strong> {{ customer.phone }}</p>
+        <p *ngIf="customer.email"><strong>Email:</strong> {{ customer.email }}</p>
+        <p><strong>Statement Date:</strong> {{ today | date:'dd-MMM-yyyy' }}</p>
+    </div>
+
+    <div class="customer-details-print"> <p *ngIf="customer.address"><strong>Address:</strong> {{ customer.address }}</p>
+      <hr class="noprint"> <div class="balance-summary">
+        <h3>
+          Current Ledger Balance:
+          <ng-container *ngIf="ledgerEndingBalance > 0">
+            <span class="amount-due">₹{{ ledgerEndingBalance.toFixed(2) }} (Due from Customer)</span>
+          </ng-container>
+          <ng-container *ngIf="ledgerEndingBalance < 0">
+            <span class="credit-balance">₹{{ (-ledgerEndingBalance).toFixed(2) }} (Customer Credit)</span>
+          </ng-container>
+          <ng-container *ngIf="ledgerEndingBalance === 0">
+            <span class="settled">₹0.00 (Settled)</span>
+          </ng-container>
+        </h3>
+        <p style="font-size: 0.9em; color: #555;">
+          (Stored Customer Credit Balance in profile: ₹{{ customer.creditBalance ? customer.creditBalance.toFixed(2) : '0.00' }})
+        </p>
+      </div>
+    </div>
+
+    <div class="transactions-table-container" *ngIf="transactions.length > 0; else noTransactions">
+      <h3>Transaction History</h3>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Description</th>
+              <th>Ref ID</th>
+              <th class="text-right">Debit (₹)</th>
+              <th class="text-right">Credit (₹)</th>
+              <th class="text-right">Balance (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let tx of transactions">
+              <td>{{ tx.date | date:'dd-MMM-yyyy HH:mm' }}</td>
+              <td>{{ tx.type }}</td>
+              <td>{{ tx.description }}</td>
+              <td>{{ tx.referenceId }}</td>
+              <td class="text-right debit-amount">{{ tx.debit !== null ? tx.debit.toFixed(2) : '-' }}</td>
+              <td class="text-right credit-amount">{{ tx.credit !== null ? tx.credit.toFixed(2) : '-' }}</td>
+              <td class="text-right balance-col">
+                {{ tx.balance.toFixed(2) }}
+                <span *ngIf="tx.balance < 0" class="balance-cr">(Cr)</span>
+                <span *ngIf="tx.balance > 0" class="balance-dr">(Dr)</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <ng-template #noTransactions>
+      <p>No transactions found for this customer.</p>
+    </ng-template>
+  </ng-container>
+
+  <ng-template #noCustomerOrLoading>
+    <p *ngIf="!isLoading && customerId">Customer with ID '{{customerId}}' not found.</p>
+    <p *ngIf="!isLoading && !customerId">No customer ID provided to display ledger.</p>
+  </ng-template>
+</div>
+
+<ng-template #loadingLedger>
+  <div class="loading-spinner-container">
+    <p>Loading ledger data...</p>
+    </div>
+</ng-template>

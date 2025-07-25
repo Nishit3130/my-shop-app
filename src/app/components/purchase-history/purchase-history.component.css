@@ -1,0 +1,12 @@
+.history-container { max-width: 1200px; margin: 2rem auto; }
+.filter-controls { display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.5rem; padding: 1rem; background-color: var(--white-color); border-radius: var(--border-radius); }
+.filter-controls .form-group { display: flex; align-items: center; gap: 0.5rem; }
+.search-bar { flex-grow: 1; }
+.search-bar input { width: 100%; border: none; outline: none; }
+.modal-content { max-width: 700px; }
+.receipt-header, .receipt-items, .receipt-summary { margin-bottom: 1.5rem; }
+.receipt-summary, .receipt-header { padding-bottom: 1rem; border-bottom: 1px dashed #ccc; }
+.receipt-summary .summary-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
+.receipt-summary .total, .receipt-summary .outstanding { font-weight: bold; font-size: 1.1rem; }
+.payment-modal-content { max-width: 500px; }
+.payment-info { background-color: var(--light-gray); padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; }

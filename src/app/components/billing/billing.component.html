@@ -1,0 +1,312 @@
+<div class="billing-container">
+  <div class="header-section">
+    <h1 class="page-title">{{ pageTitle }}</h1>
+    <div style="display: flex; gap: 1rem; align-items: center;">
+      <button class="action-button secondary-action-button" (click)="resetBill()">
+        <span class="material-icons">refresh</span> {{ editMode ? 'Cancel Edit & New' : 'Reset Form' }}
+      </button>
+      <div class="mode-toggle" *ngIf="!editMode">
+        <label class="toggle-label" [class.active]="documentMode === DocumentType.BILL">
+          <input type="radio" [(ngModel)]="documentMode" [value]="DocumentType.BILL" name="docMode"> Bill
+        </label>
+        <label class="toggle-label" [class.active]="documentMode === DocumentType.QUOTATION">
+          <input type="radio" [(ngModel)]="documentMode" [value]="DocumentType.QUOTATION" name="docMode"> Quotation
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="billing-sections" style="display: flex; gap: 2rem; flex-wrap: wrap;">
+    <div class="customer-section" style="flex: 1 1 320px; min-width: 320px; background: var(--white-color); border-radius: 8px; box-shadow: var(--box-shadow); padding: 1.5rem; margin-bottom: 1.5rem;">
+      <div class="section-header" style="margin-bottom: 1rem;">
+        <h2 style="margin: 0; font-size: 1.2rem; color: var(--primary-color);">Customer Information</h2>
+      </div>
+      <div class="form-content">
+        <div class="form-group customer-search-group">
+          <label for="customerName">Customer Name <span class="required">*</span></label>
+          <input type="text" id="customerName" name="customerName" class="form-control"
+                 [ngModel]="customerName"
+                 (ngModelChange)="onCustomerNameChange($event)"
+                 (blur)="hideCustomerResults()"
+                 placeholder="Search or enter new customer name" autocomplete="off">
+          <div class="customer-search-results" *ngIf="showCustomerSearchResults && customerSearchResults.length > 0">
+            <div class="result-item" *ngFor="let cust of customerSearchResults" (mousedown)="selectCustomer(cust)">
+              {{ cust.name }} <span *ngIf="cust.phone">({{ cust.phone }})</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="customerPhone">Phone Number <span
+              *ngIf="documentMode === DocumentType.BILL && paymentType === PaymentType.CREDIT"
+              class="required">*</span></label>
+          <input type="tel" id="customerPhone" name="customerPhoneInput" class="form-control"
+            [(ngModel)]="customerPhone" [readOnly]="selectedCustomer !== null && !!selectedCustomer.phone">
+        </div>
+        <div class="form-group">
+          <label for="customerAddress">Address <span
+              *ngIf="documentMode === DocumentType.BILL && paymentType === PaymentType.CREDIT"
+              class="required">*</span></label>
+          <textarea id="customerAddress" name="customerAddressInput" class="form-control" [(ngModel)]="customerAddress"
+            rows="2" [readOnly]="selectedCustomer !== null && !!selectedCustomer.address"></textarea>
+        </div>
+
+        <div class="credit-apply-box" *ngIf="selectedCustomer && selectedCustomer.creditBalance > 0 && paymentType === 'CREDIT' && !editMode" style="margin-top: 1rem;">
+          <label class="checkbox-label">
+            <input type="checkbox" name="applyCreditCheckbox" [(ngModel)]="applyCreditToBill">
+            Apply available advance of <strong>₹{{ selectedCustomer.creditBalance.toFixed(2) }}</strong> to this bill?
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="bill-details-section" style="flex: 1 1 320px; min-width: 320px; background: var(--white-color); border-radius: 8px; box-shadow: var(--box-shadow); padding: 1.5rem; margin-bottom: 1.5rem;">
+      <div class="section-header" style="margin-bottom: 1rem;">
+        <h2 style="margin: 0; font-size: 1.2rem; color: var(--primary-color);">Details</h2>
+      </div>
+      <div class="form-content">
+        <div class="form-group" *ngIf="documentMode === DocumentType.BILL">
+          <label for="paymentType">Payment Type</label>
+          <select id="paymentType" name="paymentTypeSelect" class="form-control" [(ngModel)]="paymentType">
+            <option [value]="PaymentType.CASH">Cash</option>
+            <option [value]="PaymentType.CREDIT">Credit</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="transportName">Transport Name (Optional)</label>
+          <input type="text" id="transportName" name="transportNameInput" class="form-control"
+            [(ngModel)]="transportName">
+        </div>
+        <div class="form-group">
+          <label for="remark">Remark (Optional)</label>
+          <textarea id="remark" name="remarkInput" class="form-control" [(ngModel)]="remark" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bill-section" style="margin-top: 10px;">
+    <div class="section-header">
+    </div>
+    <div class="bill-items">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 40%;">Product</th>
+            <th class="text-center" style="width: 10%;">Quantity</th>
+            <th class="text-right" style="width: 15%;">Price</th>
+            <th class="text-center" style="width: 20%;">Discount</th>
+            <th class="text-right" style="width: 15%;">Total</th>
+            <th class="text-center">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of cart; let i = index">
+            <td>{{ item.productName }}</td>
+            <td class="text-center"><input type="number" class="price-input" [(ngModel)]="item.quantity"
+                (ngModelChange)="updateItemAndRecalculate(item)" min="1"></td>
+            <td class="text-right"><input type="number" class="price-input" [(ngModel)]="item.price"
+                (ngModelChange)="updateItemAndRecalculate(item)" min="0"></td>
+            <td class="discount-cell">
+              <input type="number" class="discount-input" [(ngModel)]="item.discountValue"
+                (ngModelChange)="updateItemAndRecalculate(item)" min="0">
+              <select class="discount-type" [(ngModel)]="item.discountType"
+                (ngModelChange)="updateItemAndRecalculate(item)">
+                <option value="FIXED">₹</option>
+                <option value="PERCENT">%</option>
+              </select>
+            </td>
+            <td class="text-right">₹{{ item.total.toFixed(2) }}</td>
+            <td class="text-center"><button type="button" class="icon-button delete" (click)="removeFromCart(i)"><span
+                  class="material-icons">delete</span></button></td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr class="add-item-row">
+            <td class="product-search-cell">
+              <input #productNameInput type="text" placeholder="Type product name..." class="form-control"
+                [(ngModel)]="newItem.productName" name="newItemProductName" (input)="onProductInput()"
+                (keydown)="onProductInputKeydown($event)" autocomplete="off">
+              <div class="autocomplete-list" *ngIf="showProductSearchResults && productSearchResults.length > 0">
+                <div *ngFor="let p of productSearchResults; let i = index" class="autocomplete-item"
+                  [class.active]="i === activeSuggestionIndex" (mousedown)="selectProduct(p)">{{ p.name }} (Stock: {{
+                  p.stock }})</div>
+              </div>
+            </td>
+            <td class="text-center"><input type="number" class="form-control" [(ngModel)]="newItem.quantity"
+                name="newItemQuantity" min="1"></td>
+            <td class="text-right"><input type="number" class="form-control" [(ngModel)]="newItem.price"
+                name="newItemPrice" min="0"></td>
+            <td></td>
+            <td class="text-right">₹{{ (newItem.quantity * newItem.price).toFixed(2) }}</td>
+            <td class="text-center"><button class="action-button" (click)="addProductToCart()" title="Add Item"><span
+                  class="material-icons">add</span></button></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <div class="bill-summary-final" style="margin-top: 10px;" *ngIf="cart.length > 0 || editMode">
+    <div class="summary-row">
+      <span>Subtotal (Before Item Discounts)</span>
+      <span class="amount">₹{{ baseSubtotal.toFixed(2) }}</span>
+    </div>
+    <div class="summary-row discount-summary" *ngIf="totalItemDiscount > 0">
+      <span>Total Item Discounts</span>
+      <span class="amount">- ₹{{ totalItemDiscount.toFixed(2) }}</span>
+    </div>
+    <hr *ngIf="totalItemDiscount > 0">
+    <div class="summary-row">
+      <span>Net Subtotal</span>
+      <span class="amount">₹{{ calculateNetSubtotal().toFixed(2) }}</span>
+    </div>
+    <div class="summary-row">
+      <span>Bill Level Discount</span>
+      <input type="number" class="summary-input" name="billDiscount" [(ngModel)]="discount"
+        (ngModelChange)="calculateAllTotals()" min="0">
+    </div>
+    <div class="summary-row">
+      <label>Packing Charge</label>
+      <input type="number" class="summary-input" name="packingCharge" [(ngModel)]="packingCharge"
+        (ngModelChange)="calculateAllTotals()" min="0">
+    </div>
+    <div class="summary-row">
+      <label>Handling Charge</label>
+      <input type="number" class="summary-input" name="handlingCharge" [(ngModel)]="handlingCharge"
+        (ngModelChange)="calculateAllTotals()" min="0">
+    </div>
+    <div class="summary-row">
+      <label>Delivery Charge</label>
+      <input type="number" class="summary-input" name="deliveryCharge" [(ngModel)]="deliveryCharge"
+        (ngModelChange)="calculateAllTotals()" min="0">
+    </div>
+    <div class="summary-row">
+      <label>Tax Amount</label>
+      <input type="number" class="summary-input" name="taxAmount" [(ngModel)]="taxAmountInput"
+        (ngModelChange)="calculateAllTotals()" min="0">
+    </div>
+    <hr>
+    <div class="summary-row total">
+      <span>Grand Total</span>
+      <span class="amount">₹{{ calculateGrossTotal().toFixed(2) }}</span>
+    </div>
+    <div class="bill-actions">
+      <button type="button" class="action-button primary-action-button" (click)="saveDocument()"
+        [disabled]="!canSaveDocument()">
+        <span class="material-icons">{{ documentMode === DocumentType.BILL ? 'receipt' : 'request_quote' }}</span>
+        {{ editMode ? 'Update Bill' : (documentMode === DocumentType.BILL ? 'Generate Bill' : 'Save Quotation') }}
+      </button>
+    </div>
+  </div>
+
+  <div class="modal" *ngIf="showBillConfirmation && generatedBill">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>{{ generatedBill.documentType }} Generated Successfully</h2>
+        <button class="icon-button" (click)="closeBillConfirmation()"><span class="material-icons">close</span></button>
+      </div>
+      <div class="modal-body print-section">
+        <div class="print-header" *ngIf="appSettings">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="font-size:1.05em;color:#444;">
+              {{ appSettings.address }}<br>
+              <span *ngIf="appSettings.gstin">GSTIN: {{ appSettings.gstin }}</span>
+            </div>
+            <div style="text-align: center;">
+              <img *ngIf="appSettings.companyLogo" [src]="appSettings.companyLogo" alt="Logo" style="width:48px;height:48px;border-radius:50%;margin-bottom:4px;" />
+              <div style="font-size:1.5em;font-weight:bold;letter-spacing:1px;">{{ appSettings.companyName }}</div>
+            </div>
+            <div style="font-size:1.05em;color:#444;text-align:right;">
+              <span *ngIf="appSettings.phone">Ph: {{ appSettings.phone }}</span>
+              <span *ngIf="appSettings.email"> | Email: {{ appSettings.email }}</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0 0 0;">
+          <div>
+            <b>Name:</b> {{ generatedBill.customerName }}<br>
+            <b *ngIf="generatedBill.customerPhone">Phone:</b> <span *ngIf="generatedBill.customerPhone">{{ generatedBill.customerPhone }}</span>
+          </div>
+          <div style="text-align:right;">
+            <span>Date: {{ generatedBill.createdAt | date:'full' }}</span><br>
+            <span>Bill No: {{ generatedBill.billNo }}</span>
+          </div>
+        </div>
+        <hr>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th class="text-center">Qty</th>
+              <th class="text-right">Price</th>
+              <th class="text-right">Discount</th>
+              <th class="text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of generatedBill.items">
+              <td>{{ item.productName }}</td>
+              <td class="text-center">{{ item.quantity }}</td>
+              <td class="text-right">{{ appSettings.currencySymbol }}{{ item.price.toFixed(2) }}</td>
+              <td class="text-right">{{ item.discountValue ? (item.discountValue.toFixed(2) + (item.discountType === 'PERCENT' ? '%' : appSettings.currencySymbol)) : '-' }}</td>
+              <td class="text-right">{{ appSettings.currencySymbol }}{{ item.total.toFixed(2) }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <hr>
+        <div class="summary-view">
+          <div class="summary-row">
+            <span>Subtotal</span>
+            <span>{{ appSettings.currencySymbol || '₹' }}{{ (generatedBill.subtotal + (generatedBill.totalItemDiscount || 0)).toFixed(2) }}</span>
+          </div>
+          <div class="summary-row" *ngIf="generatedBill.totalItemDiscount && generatedBill.totalItemDiscount > 0">
+            <span>Total Item Discounts</span>
+            <span>- {{ appSettings.currencySymbol || '₹' }}{{ generatedBill.totalItemDiscount.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row" *ngIf="generatedBill.discount && generatedBill.discount > 0">
+            <span>Bill Discount</span>
+            <span>- {{ appSettings.currencySymbol || '₹' }}{{ generatedBill.discount.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row" *ngIf="generatedBill.packingCharge && generatedBill.packingCharge > 0">
+            <span>Packing Charge</span>
+            <span>{{ appSettings.currencySymbol || '₹' }}{{ generatedBill.packingCharge.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row" *ngIf="generatedBill.handlingCharge && generatedBill.handlingCharge > 0">
+            <span>Handling Charge</span>
+            <span>{{ appSettings.currencySymbol || '₹' }}{{ generatedBill.handlingCharge.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row" *ngIf="generatedBill.deliveryCharge && generatedBill.deliveryCharge > 0">
+            <span>Delivery Charge</span>
+            <span>{{ appSettings.currencySymbol || '₹' }}{{ generatedBill.deliveryCharge.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row" *ngIf="generatedBill.tax && generatedBill.tax > 0">
+            <span>Tax</span>
+            <span>{{ appSettings.currencySymbol || '₹' }}{{ generatedBill.tax.toFixed(2) }}</span>
+          </div>
+          <hr>
+          <div class="summary-row total">
+            <span>Grand Total:</span><span>{{ appSettings.currencySymbol || '₹' }}{{ generatedBill.total.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row">
+            <span>Amount Paid:</span><span>{{ appSettings.currencySymbol || '₹' }}{{ generatedBill.amountPaid.toFixed(2) }}</span>
+          </div>
+          <div class="summary-row outstanding" *ngIf="(generatedBill.total - generatedBill.amountPaid) > 0.005">
+            <span>Balance Due</span>
+            <span>{{ appSettings.currencySymbol || '₹' }}{{ (generatedBill.total - generatedBill.amountPaid).toFixed(2) }}</span>
+          </div>
+        </div>
+        <div class="print-footer" *ngIf="appSettings?.invoiceFooter">
+          <hr>
+          <div [innerHTML]="appSettings.invoiceFooter"></div>
+        </div>
+      </div>
+      <div class="print-actions noprint">
+        <button type="button" class="action-button" (click)="printBill()">
+          <span class="material-icons">print</span> Print Bill
+        </button>
+        <button type="button" class="action-button secondary-action-button" (click)="closeBillConfirmation()">
+          <span class="material-icons">add</span> New Bill
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

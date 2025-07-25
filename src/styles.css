@@ -1,0 +1,668 @@
+/* src/styles.css */
+
+/* ==========================================================================
+   1. CSS Variables & Root Configuration
+   ========================================================================== */
+:root {
+  /* Colors */
+  --primary-color: #27374D;      /* Accent/primary buttons */
+  --success-color: #526D82;
+  --danger-color: #9DB2BF;
+  --secondary-color: #526D82;    /* Secondary elements */
+  --warning-color: #DDE6ED;
+
+  /* Grays & Text */
+  --light-gray: #DDE6ED;         /* Card/table backgrounds */
+  --medium-gray: #9DB2BF;        /* Table headers, subtle backgrounds */
+  --dark-gray: #27374D;          /* Main background */
+  --text-color: #27374D;         /* Main text */
+  --white-color: #ffffff;        /* Always white */
+
+  /* Structure & Layout */
+  --border-color: #9DB2BF;
+  --border-radius: 4px;
+  --box-shadow: 0 2px 10px rgba(39, 55, 77, 0.08);
+  --font-family: Arial, sans-serif;
+}
+
+/* ==========================================================================
+   2. Global Resets & Base Styles
+   ========================================================================== */
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  background-color: var(--light-gray);
+  color: var(--text-color);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.page-title {
+  margin: 0 0 1.5rem 0;
+  color: var(--dark-gray) !important;
+  font-size: 1.8rem;
+}
+
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  background: var(--dark-gray);
+  border-bottom: 2px solid var(--primary-color);
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  box-shadow: 0 2px 8px rgba(46, 7, 63, 0.08);
+  padding: 1.2rem 2rem 1.2rem 2rem;
+}
+
+.page-title {
+  color: var(--white-color) !important;
+  font-size: 2rem;
+  font-weight: bold;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+.header-section .header-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+/* ==========================================================================
+   3. Table Styling
+   ========================================================================== */
+.table-responsive {
+  overflow-x: auto;
+  background-color: var(--white-color);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border-color);
+  text-align: left;
+}
+
+.data-table th {
+  background-color: var(--medium-gray);
+  color: var(--white-color);
+}
+
+.data-table td {
+  background-color: var(--white-color);
+  color: var(--text-color);
+}
+
+/* Ensure all table cells use theme text color */
+.data-table th,
+.data-table td {
+  color: var(--text-color);
+}
+
+.no-data,
+.no-bills,
+.no-products {
+  text-align: center;
+  padding: 2rem;
+  color: var(--secondary-color);
+  font-style: italic;
+}
+
+/* ==========================================================================
+   4. Button System (Reverted to Original Preference)
+   ========================================================================== */
+.action-button,
+.secondary-action-button,
+.primary-action-button,
+.cancel-button,
+.delete-button,
+.save-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 0.9rem;
+  color: var(--white-color);
+  background-color: var(--primary-color);
+  /* Default color */
+  cursor: pointer;
+  text-decoration: none;
+  transition: filter 0.2s ease;
+}
+
+.action-button:hover,
+.secondary-action-button:hover,
+.primary-action-button:hover,
+.cancel-button:hover,
+.delete-button:hover,
+.save-button:hover {
+  filter: brightness(90%);
+}
+
+.action-button:disabled,
+.primary-action-button:disabled,
+.save-button:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+  filter: none;
+}
+
+/* Specific button color overrides */
+.primary-action-button {
+  background-color: var(--success-color);
+}
+
+.secondary-action-button,
+.cancel-button {
+  background-color: var(--secondary-color);
+}
+
+.delete-button {
+  background-color: var(--danger-color);
+}
+
+.save-button {
+  background-color: var(--primary-color);
+}
+
+/* Explicitly for forms */
+
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--secondary-color);
+  padding: 0.2rem;
+  border-radius: 4px;
+}
+
+.icon-button:hover {
+  background-color: var(--light-gray);
+}
+
+.icon-button .material-icons {
+  font-size: 1.2rem;
+  vertical-align: middle;
+}
+
+.icon-button.delete:hover {
+  color: var(--danger-color);
+}
+
+/* ==========================================================================
+   5. Forms & Inputs
+   ========================================================================== */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.1rem;
+  font-weight: 500;
+}
+
+.form-control,
+.search-input {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: var(--border-radius);
+  box-sizing: border-box;
+}
+
+.error-message {
+  color: var(--danger-color);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}
+
+/* ==========================================================================
+   6. Modal System
+   ========================================================================== */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: var(--white-color);
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  color: var(--text-color);
+}
+
+.confirmation-modal .modal-content {
+  max-width: 450px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h2 {
+  margin: 0;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--light-gray);
+}
+
+/* ==========================================================================
+   7. Badge System
+   ========================================================================== */
+.badge {
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  color: #fff;
+  font-weight: 600;
+  text-transform: uppercase;
+  background-color: var(--primary-color);
+}
+
+.badge.paid,
+.badge.cash {
+  background-color: var(--success-color);
+}
+.badge.unpaid,
+.badge.credit {
+  background-color: var(--danger-color);
+}
+.badge.partially-paid,
+.badge.pending {
+  background-color: var(--warning-color);
+}
+
+
+/* ==========================================================================
+   8. Utility Classes
+   ========================================================================== */
+.text-left {
+  text-align: left !important;
+}
+
+.text-center {
+  text-align: center !important;
+}
+
+.text-right {
+  text-align: right !important;
+}
+
+/* ==========================================================================
+   9. Print Styles
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 18mm 12mm 18mm 12mm;
+  }
+  html, body {
+    width: 210mm;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    box-sizing: border-box;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+  }
+  body * {
+    visibility: hidden !important;
+  }
+  .modal, .modal-content, .modal-content *,
+  .print-section, .print-header, .print-footer {
+    visibility: visible !important;
+  }
+  .modal, .modal-content, .print-section {
+    position: static !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    overflow: visible !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+  .print-header {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    border-top: none !important;
+    margin-bottom: 0.5em !important;
+    padding-bottom: 0.5em !important;
+  }
+  .company-logo {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    max-height: 50px !important;
+  }
+  .company-logo img {
+    max-height: 40px !important;
+    max-width: 90px !important;
+    padding: 2px !important;
+  }
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.5em 0 0.3em 0 !important;
+    background: #fafbfc;
+    border-radius: 4px;
+    overflow: hidden;
+    font-size: 0.95em !important;
+  }
+  .data-table th, .data-table td {
+    border: 1px solid #e0e0e0;
+    padding: 3px 6px !important;
+    text-align: left;
+    font-size: 0.95em !important;
+    line-height: 1.1 !important;
+  }
+  .data-table th {
+    background: #e3f2fd;
+    color: #0d47a1;
+    font-weight: 600;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+  .data-table td.text-right {
+    text-align: right;
+  }
+  .data-table td.text-center {
+    text-align: center;
+  }
+  .summary-view {
+    margin-top: 0.7em !important;
+    background: #fff;
+    border-radius: 0;
+    padding: 0 !important;
+    box-shadow: none !important;
+    font-size: 0.98em !important;
+  }
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.15em 0 !important;
+    font-size: 1em !important;
+    border-bottom: 1px dashed #d1d5db;
+  }
+  .summary-row:last-child, .summary-row.total {
+    border-bottom: none;
+    font-weight: bold;
+    color: #1b5e20;
+    font-size: 1.08em !important;
+  }
+  .summary-row.outstanding {
+    color: #b71c1c;
+    font-weight: bold;
+  }
+  .print-footer {
+    margin-top: 1.2em !important;
+    font-size: 0.95em !important;
+    color: #555;
+    text-align: left;
+    border-top: 1px solid #e0e0e0;
+    padding-top: 0.5em !important;
+  }
+  .modal-header, .modal-actions, .noprint {
+    display: none !important;
+  }
+}
+
+/* ==========================================================================
+   9. Print Styles (Print-Friendly Reports)
+   ========================================================================== */
+@media print {
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .header-section, .action-button, .secondary-action-button, .primary-action-button, .cancel-button, .delete-button, .save-button, .navbar, .sidebar, .footer, .no-print, .print-hide {
+    display: none !important;
+  }
+  .print-section, .report-content, .data-table, .table-responsive {
+    background: #fff !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  .data-table th, .data-table td {
+    color: #000 !important;
+    background: #fff !important;
+    border-color: #aaa !important;
+  }
+  .badge, .section-header {
+    color: #000 !important;
+    background: #eee !important;
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+  }
+  .page-title, h1, h2, h3, h4, h5, h6 {
+    color: #000 !important;
+    background: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-section {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    box-shadow: none !important;
+  }
+  /* Remove links underline and color */
+  a {
+    color: #000 !important;
+    text-decoration: none !important;
+  }
+  /* Avoid page breaks inside tables and section headers */
+  .data-table, .section-header {
+    page-break-inside: avoid !important;
+  }
+  /* Hide scrollbars */
+  ::-webkit-scrollbar {
+    display: none !important;
+  }
+}
+
+/* END PRINT BILL STYLES */
+
+/* ==========================================================================
+   10. Component Specific Styles
+   ========================================================================== */
+
+/* --- Billing Component --- */
+
+/* --- Bill History Component --- */
+
+/* --- Product Component --- */
+
+/* --- Customer Component --- */
+
+/* --- Invoice Component --- */
+
+/* --- Payment Component --- */
+
+/* --- Report Component --- */
+
+/* --- Settings Component --- */
+
+/* --- User Component --- */
+
+/* --- Role Component --- */
+
+/* --- Permission Component --- */
+
+/* --- Audit Log Component --- */
+
+/* --- Notification Component --- */
+
+/* --- Help Component --- */
+
+/* --- Feedback Component --- */
+
+/* --- Terms Component --- */
+
+/* --- Privacy Component --- */
+
+/* --- About Component --- */
+
+/* --- Contact Component --- */
+
+/* --- Home Component --- */
+
+/* --- Page Not Found Component --- */
+.page-not-found {
+  text-align: center;
+  padding: 2rem;
+  color: var(--danger-color);
+}
+
+.page-not-found h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.page-not-found p {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+/* --- Loader --- */
+.loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.loader div {
+  width: 1rem;
+  height: 1rem;
+  margin: 0 0.2rem;
+  border-radius: 50%;
+  background: var(--primary-color);
+  animation: loader-animation 0.6s infinite alternate;
+}
+
+@keyframes loader-animation {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-15px);
+  }
+}
+
+/* --- Responsive Utilities --- */
+@media (max-width: 768px) {
+  .header-section {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+  }
+
+  .action-button,
+  .secondary-action-button,
+  .primary-action-button,
+  .cancel-button,
+  .delete-button,
+  .save-button {
+    width: 100%;
+    padding: 0.8rem;
+    font-size: 1rem;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .modal-content {
+    width: 95%;
+    max-width: 100%;
+  }
+
+  .print-section {
+    padding: 24px;
+  }
+}
+
+@media (max-width: 576px) {
+  .page-title {
+    font-size: 1.2rem;
+  }
+
+  .action-button,
+  .secondary-action-button,
+  .primary-action-button,
+  .cancel-button,
+  .delete-button,
+  .save-button {
+    padding: 0.6rem;
+    font-size: 0.9rem;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 0.4rem;
+    font-size: 0.8rem;
+  }
+
+  .modal-content {
+    width: 98%;
+    max-width: 100%;
+  }
+
+  .print-section {
+    padding: 16px;
+  }
+}

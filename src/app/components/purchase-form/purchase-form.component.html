@@ -1,0 +1,116 @@
+<div class="purchase-form-container">
+  <div class="header-section">
+    <h1 class="page-title">{{ pageTitle }}</h1>
+    <a routerLink="/purchases" class="action-button secondary-action-button">
+      <span class="material-icons">history</span> Purchase History
+    </a>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-indicator">
+    <p>Loading purchase details...</p>
+  </div>
+
+  <div *ngIf="!isLoading">
+    <div class="form-sections">
+      <div class="form-section">
+        <div class="section-header"><h2>Supplier & Invoice Details</h2></div>
+        <div class="form-content">
+          <div class="form-group supplier-search-group">
+            <label for="supplierSearch">Search or Add Supplier</label>
+            <input type="text" id="supplierSearch" class="form-control" placeholder="Type to search or add a new supplier..." [(ngModel)]="supplierSearchTerm" (input)="onSupplierSearch()" (blur)="hideSupplierResults()" autocomplete="off" required>
+            <div class="search-results" *ngIf="showSupplierSearchResults && supplierSearchResults.length > 0">
+              <div class="result-item" *ngFor="let sup of supplierSearchResults" (mousedown)="selectSupplier(sup)"> {{ sup.name }} <span *ngIf="sup.phone">({{ sup.phone }})</span> </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="supplierInvoiceNo">Supplier Invoice #</label>
+            <input type="text" id="supplierInvoiceNo" class="form-control" [(ngModel)]="supplierInvoiceNo" required>
+          </div>
+          <div class="form-group">
+            <label for="purchaseDate">Purchase Date</label>
+            <input type="date" id="purchaseDate" class="form-control" [(ngModel)]="purchaseDate" required>
+          </div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="section-header"><h2>Add Items to Purchase</h2></div>
+        <div class="form-content">
+          <div class="form-group product-search-group">
+            <label for="productSearch">Search Existing or Type New Product</label>
+            <input type="text" id="productSearch" class="form-control" placeholder="e.g., '10mm Steel Rod' or 'New Custom Item'" [(ngModel)]="productSearchTerm" (input)="onProductSearch()" autocomplete="off">
+            <div class="search-results" *ngIf="productSearchResults.length > 0">
+              <div class="result-item" *ngFor="let p of productSearchResults" (click)="selectProduct(p)"> {{ p.name }} (Stock: {{p.stock}}) </div>
+            </div>
+          </div>
+          <div class="selected-product-entry">
+            <div class="form-group"> <label>Quantity</label> <input type="number" class="form-control" [(ngModel)]="purchaseQuantity" min="1"> </div>
+            <div class="form-group"> <label>Purchase Price per Item (₹)</label> <input type="number" class="form-control" [(ngModel)]="purchasePrice" min="0" step="0.01"> </div>
+            <button type="button" class="action-button" (click)="addItemToPurchase()"> <span class="material-icons">add_shopping_cart</span> Add Item </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="form-section">
+      <div class="section-header"><h2>Items in this Purchase</h2></div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead> <tr> <th>Product Name</th> <th>Quantity</th> <th>Purchase Price (₹)</th> <th>Total (₹)</th> <th>Action</th> </tr> </thead>
+          <tbody>
+            <tr *ngFor="let item of purchaseItems; let i = index">
+              <td> {{ item.productName }} <span *ngIf="item.isNew" class="new-item-badge">NEW</span> </td>
+              <td>{{ item.quantity }}</td> <td class="text-right">{{ item.purchasePrice.toFixed(2) }}</td>
+              <td class="text-right">{{ item.total.toFixed(2) }}</td>
+              <td class="text-center"> <button class="icon-button delete" (click)="removeItem(i)" title="Remove Item"> <span class="material-icons">delete</span> </button> </td>
+            </tr>
+            <tr *ngIf="purchaseItems.length === 0"> <td colspan="5" class="no-data">No items added yet.</td> </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="summary-save-section">
+      <div class="form-section summary-section">
+        <div class="section-header"><h2>Summary</h2></div>
+        <div class="form-content">
+            <div class="summary-row"><span>Subtotal</span><span>₹{{ subtotal.toFixed(2) }}</span></div>
+            <div class="summary-row"> <label for="taxAmount">Tax Amount (₹)</label> <input type="number" id="taxAmount" class="summary-input" [(ngModel)]="taxAmount" (input)="calculateTotals()" min="0"> </div>
+            <div class="summary-row"> <label for="otherCharges">Shipping/Other Charges (₹)</label> <input type="number" id="otherCharges" class="summary-input" [(ngModel)]="otherCharges" (input)="calculateTotals()" min="0"> </div>
+            <hr>
+            <div class="summary-row total"><span>Total Amount</span><span>₹{{ totalAmount.toFixed(2) }}</span></div>
+            <div class="summary-row"> <label for="amountPaid">Amount Paid Now (₹)</label> <input type="number" id="amountPaid" class="summary-input" [(ngModel)]="amountPaid" min="0" [max]="totalAmount"> </div>
+            <div class="summary-row final-due"><span>Balance Due</span><span>₹{{ (totalAmount - amountPaid).toFixed(2) }}</span></div>
+        </div>
+      </div>
+      <div class="save-actions">
+          <div class="form-group"> <label for="remark">Remark (Optional)</label> <textarea id="remark" class="form-control" [(ngModel)]="remark" rows="3"></textarea> </div>
+          <div class="button-group">
+            <button *ngIf="editMode" type="button" class="action-button delete-button" (click)="requestDeletePurchase()"> <span class="material-icons">delete_forever</span> Delete </button>
+            <button type="button" class="action-button primary-action-button" (click)="savePurchase()"> <span class="material-icons">save</span> {{ editMode ? 'Save Changes' : 'Record Purchase' }} </button>
+          </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" *ngIf="showSellingPriceModal">
+    <div class="modal-content confirmation-modal">
+      <div class="modal-header"> <h2>New Product Detected</h2> </div>
+      <div class="modal-body">
+        <p> "<strong>{{ pendingNewProduct?.name }}</strong>" is not in your product list. Please set its selling price to add it to your catalog. </p>
+        <div class="form-group"> <label for="sellingPrice">Selling Price (₹)</label> <input type="number" id="sellingPrice" name="sellingPrice" class="form-control" [(ngModel)]="newProductSellingPrice" min="0" required> </div>
+        <div class="modal-actions"> <button type="button" class="cancel-button" (click)="cancelNewProduct()">Cancel</button> <button type="button" class="action-button primary-action-button" (click)="confirmNewProductSellingPrice()">Confirm & Add Item</button> </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" *ngIf="showDeleteConfirmation">
+    <div class="modal-content confirmation-modal">
+      <div class="modal-header"> <h2>Confirm Deletion</h2> </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete this purchase invoice (<strong>#{{ originalPurchaseForEdit?.supplierInvoiceNo }}</strong>)?</p>
+        <p class="warning-text">This action cannot be undone. It will revert the stock changes and supplier balance adjustments made by this purchase.</p>
+      </div>
+      <div class="modal-actions"> <button type="button" class="cancel-button" (click)="cancelDelete()">Cancel</button> <button type="button" class="action-button delete-button" (click)="confirmDelete()">Yes, Delete Invoice</button> </div>
+    </div>
+  </div>
+</div>

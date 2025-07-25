@@ -1,0 +1,32 @@
+<div class="app-container">
+  <header class="main-header">
+    <div class="logo">
+      <h1>Shop Manager</h1>
+    </div>
+    <nav class="main-nav">
+      <ul>
+        <li><a routerLink="/dashboard" routerLinkActive="active">Dashboard</a></li>
+        <li><a routerLink="/products" routerLinkActive="active">Products</a></li>
+        <li><a routerLink="/billing" routerLinkActive="active">New Bill</a></li>
+        <li><a routerLink="/bills" routerLinkActive="active">Bill History</a></li>
+        <li><a routerLink="/purchases" routerLinkActive="active">Purchases</a></li>
+        <li><a routerLink="/credit-debit" routerLinkActive="active">Credit/Debit</a></li>
+        <li><a routerLink="/customers" routerLinkActive="active">Customers</a></li>
+        <li><a routerLink="/suppliers" routerLinkActive="active">Suppliers</a></li>
+        <li><a routerLink="/reports" routerLinkActive="active">Reports</a></li>
+        <li><a routerLink="/settings" routerLinkActive="active">Settings</a></li>
+        <li><a routerLink="/manual-ledger" routerLinkActive="active">Manual Ledger</a></li>
+        <li><a routerLink="/transactions" routerLinkActive="active">Income/Expense</a></li>
+
+      </ul>
+    </nav>
+  </header>
+
+  <main class="content">
+    <router-outlet></router-outlet>
+  </main>
+
+  <footer class="main-footer">
+    <p>&copy; 2025 My Shop Management App</p>
+  </footer>
+</div>
