@@ -66,7 +66,6 @@ export class IncomeExpenseComponent implements OnInit, OnDestroy {
   }
 
   loadTransactions(): void {
-    // Obsolete method, replaced by ngOnInit subscription.
   }
   
   applyFilters(): void {
@@ -131,25 +130,35 @@ export class IncomeExpenseComponent implements OnInit, OnDestroy {
     this.showForm = false;
   }
 
-  saveTransaction(): void {
+  async saveTransaction(): Promise<void> {
     if (this.transactionForm.invalid) {
       this.transactionForm.markAllAsTouched();
       return;
     }
     const formData = this.transactionForm.value;
     
-    if (this.editMode && this.currentTransactionId) {
-      this.transactionService.updateTransaction(this.currentTransactionId, formData);
-    } else {
-      this.transactionService.addTransaction(formData);
+    try {
+      if (this.editMode && this.currentTransactionId) {
+        await this.transactionService.updateTransaction(this.currentTransactionId, formData);
+      } else {
+        await this.transactionService.addTransaction(formData);
+      }
+      this.closeForm();
+    } catch (error: any) {
+      alert(`Error saving transaction: ${error.message || 'Unknown error occurred.'}`);
     }
-    
-    this.closeForm();
   }
 
-  deleteTransaction(id: string): void {
+  async deleteTransaction(id: string): Promise<void> {
     if (confirm('Are you sure you want to delete this transaction?')) {
-      this.transactionService.deleteTransaction(id);
+      try {
+        const success = await this.transactionService.deleteTransaction(id);
+        if (!success) {
+          alert('Failed to delete the transaction from the database.');
+        }
+      } catch (error: any) {
+        alert(`Error deleting transaction: ${error.message || 'Unknown error occurred.'}`);
+      }
     }
   }
 }

@@ -61,9 +61,9 @@ export class PurchaseFormComponent implements OnInit {
   private route = inject(ActivatedRoute);
 
   ngOnInit(): void {
-    // REFINED: Subscribing to paramMap is more robust than snapshot
     this.route.paramMap.subscribe(params => {
       const id = params.get('id');
+      const isConvertingQuote = this.route.snapshot.url[1]?.path === 'from-quote';
       if (id) {
         this.editMode = true;
         this.currentPurchaseId = id;
@@ -78,33 +78,41 @@ export class PurchaseFormComponent implements OnInit {
     });
   }
 
-  loadPurchaseForEditing(id: string): void {
+  async loadPurchaseForEditing(id: string): Promise<void> {
     this.isLoading = true;
-    const purchase = this.purchaseService.getPurchaseById(id);
-    if (purchase) {
-      this.originalPurchaseForEdit = JSON.parse(JSON.stringify(purchase));
-      const supplier = this.supplierService.getSupplierById(purchase.supplierId);
-      if (supplier) { this.selectSupplier(supplier); }
-      this.supplierInvoiceNo = purchase.supplierInvoiceNo;
-      this.purchaseDate = new Date(purchase.purchaseDate).toISOString().split('T')[0];
-      this.remark = purchase.remark || '';
-      this.purchaseItems = purchase.items.map(item => ({...item}));
-      this.taxAmount = purchase.taxAmount || 0;
-      this.otherCharges = purchase.otherCharges || 0;
-      this.amountPaid = purchase.amountPaid;
-      this.calculateTotals();
-    } else {
-      alert('Purchase invoice not found!');
-      this.router.navigate(['/purchases']);
+    try {
+      const purchase = await this.purchaseService.getPurchaseById(id);
+      if (purchase) {
+        this.originalPurchaseForEdit = JSON.parse(JSON.stringify(purchase));
+        const supplier = await this.supplierService.getSupplierById(purchase.supplierId);
+        if (supplier) { this.selectSupplier(supplier); }
+        this.supplierInvoiceNo = purchase.supplierInvoiceNo;
+        this.purchaseDate = new Date(purchase.purchaseDate).toISOString().split('T')[0];
+        this.remark = purchase.remark || '';
+        this.purchaseItems = purchase.items.map(item => ({...item}));
+        this.taxAmount = purchase.taxAmount || 0;
+        this.otherCharges = purchase.otherCharges || 0;
+        this.amountPaid = purchase.amountPaid;
+        this.calculateTotals();
+      } else {
+        alert('Purchase invoice not found!');
+        this.router.navigate(['/purchases']);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      this.isLoading = false;
     }
-    this.isLoading = false;
   }
 
-  // --- Supplier Logic (Unchanged) ---
   onSupplierSearch(): void {
     if (this.supplierSearchTimeout) clearTimeout(this.supplierSearchTimeout);
     this.selectedSupplier = null;
-    if (!this.supplierSearchTerm.trim()) { this.supplierSearchResults = []; this.showSupplierSearchResults = false; return; }
+    if (!this.supplierSearchTerm.trim()) { 
+      this.supplierSearchResults = []; 
+      this.showSupplierSearchResults = false; 
+      return; 
+    }
     this.showSupplierSearchResults = true;
     this.supplierSearchTimeout = setTimeout(() => {
       this.supplierSearchResults = this.supplierService.getSuppliers().filter(s => 
@@ -112,13 +120,22 @@ export class PurchaseFormComponent implements OnInit {
       );
     }, 300);
   }
-  selectSupplier(supplier: Supplier): void { this.selectedSupplier = supplier; this.supplierSearchTerm = supplier.name; this.showSupplierSearchResults = false; }
-  hideSupplierResults(): void { setTimeout(() => this.showSupplierSearchResults = false, 200); }
 
-  // --- REFINED Product Logic ---
+  selectSupplier(supplier: Supplier): void { 
+    this.selectedSupplier = supplier; 
+    this.supplierSearchTerm = supplier.name; 
+    this.showSupplierSearchResults = false; 
+  }
+
+  hideSupplierResults(): void { 
+    setTimeout(() => this.showSupplierSearchResults = false, 200); 
+  }
+
   onProductSearch(): void {
     if (!this.productSearchTerm.trim()) { this.productSearchResults = []; return; }
-    this.productSearchResults = this.productService.getProducts().filter(p => p.name.toLowerCase().includes(this.productSearchTerm.toLowerCase())).slice(0, 5);
+    this.productSearchResults = this.productService.getProducts().filter(p => 
+      p.name.toLowerCase().includes(this.productSearchTerm.toLowerCase())
+    ).slice(0, 5);
   }
 
   selectProduct(product: Product): void {
@@ -128,28 +145,35 @@ export class PurchaseFormComponent implements OnInit {
     this.productSearchResults = [];
   }
 
-  addItemToPurchase(): void {
+  async addItemToPurchase(): Promise<void> {
     const productName = this.productSearchTerm.trim();
-    if (!productName || this.purchaseQuantity <= 0 || this.purchasePrice < 0) { alert('Please enter a product name, valid quantity, and price.'); return; }
+    if (!productName || this.purchaseQuantity <= 0 || this.purchasePrice < 0) { 
+      alert('Please enter a product name, valid quantity, and price.'); 
+      return; 
+    }
     
-    const existingProduct = this.productService.getProductByName(productName);
+    // FIXED: Added await to getProductByName
+    const existingProduct = await this.productService.getProductByName(productName);
 
     if (existingProduct) {
-      // Logic for adding a known product
       const existingItemInCart = this.purchaseItems.find(item => item.productId === existingProduct.id);
-      if (existingItemInCart) { alert(`${existingProduct.name} is already in the list.`); return; }
+      if (existingItemInCart) { 
+        alert(`${existingProduct.name} is already in the list.`); 
+        return; 
+      }
       
       this.purchaseItems.push({
-        productId: existingProduct.id, productName: existingProduct.name,
-        quantity: this.purchaseQuantity, purchasePrice: this.purchasePrice,
+        productId: existingProduct.id, 
+        productName: existingProduct.name,
+        quantity: this.purchaseQuantity, 
+        purchasePrice: this.purchasePrice,
         total: this.purchaseQuantity * this.purchasePrice
       });
       this.clearProductSelection();
       this.calculateTotals();
     } else {
-      // Logic for a new product: open the modal
       this.pendingNewProduct = { name: productName, quantity: this.purchaseQuantity, purchasePrice: this.purchasePrice };
-      this.newProductSellingPrice = this.purchasePrice; // Default selling price
+      this.newProductSellingPrice = this.purchasePrice; 
       this.showSellingPriceModal = true;
     }
   }
@@ -180,10 +204,13 @@ export class PurchaseFormComponent implements OnInit {
   }
   
   removeItem(index: number): void { this.purchaseItems.splice(index, 1); this.calculateTotals(); }
-  calculateTotals(): void { this.subtotal = this.purchaseItems.reduce((sum, item) => sum + item.total, 0); this.totalAmount = this.subtotal + (Number(this.taxAmount) || 0) + (Number(this.otherCharges) || 0); }
+  
+  calculateTotals(): void { 
+    this.subtotal = this.purchaseItems.reduce((sum, item) => sum + item.total, 0); 
+    this.totalAmount = this.subtotal + (Number(this.taxAmount) || 0) + (Number(this.otherCharges) || 0); 
+  }
 
-  // --- REFINED Save & Delete Logic ---
-  savePurchase(): void {
+  async savePurchase(): Promise<void> {
     if (!this.supplierSearchTerm.trim()) { alert('Please select or enter a supplier name.'); return; }
     if (!this.supplierInvoiceNo.trim()) { alert("Please enter the supplier's invoice number."); return; }
     if (this.purchaseItems.length === 0) { alert('Please add at least one item to the purchase.'); return; }
@@ -192,33 +219,70 @@ export class PurchaseFormComponent implements OnInit {
     if (!supplierToUse) {
       const supplierName = this.supplierSearchTerm.trim();
       const existing = this.supplierService.getSuppliers().find(s => s.name.toLowerCase() === supplierName.toLowerCase());
-      if (existing) { supplierToUse = existing; } 
-      else {
-        try { supplierToUse = this.supplierService.addSupplier({ name: supplierName }); } 
-        catch (error) { return; } // Service will alert on failure
+      
+      if (existing) { 
+        supplierToUse = existing; 
+      } else {
+        // FIXED: Awaiting asynchronous supplier creation
+        supplierToUse = await this.supplierService.addSupplier({ name: supplierName }); 
       }
     }
     
     this.calculateTotals();
     
-    if (this.editMode && this.currentPurchaseId) {
-      const updatedData = {
-        supplierId: supplierToUse.id, supplierInvoiceNo: this.supplierInvoiceNo, purchaseDate: new Date(this.purchaseDate),
-        items: this.purchaseItems, subtotal: this.subtotal, taxAmount: this.taxAmount || undefined, otherCharges: this.otherCharges || undefined,
-        totalAmount: this.totalAmount, amountPaid: this.amountPaid, remark: this.remark || undefined
-      };
-      const result = this.purchaseService.updatePurchaseInvoice(this.currentPurchaseId, updatedData);
-      if(result) { alert('Purchase invoice updated successfully!'); this.router.navigate(['/purchases']); }
-      else { alert('Failed to update purchase invoice.'); }
-    } else {
-      const newPurchaseInvoice = this.purchaseService.createPurchaseInvoice({
-        supplierId: supplierToUse.id, supplierInvoiceNo: this.supplierInvoiceNo, purchaseDate: new Date(this.purchaseDate),
-        items: this.purchaseItems, subtotal: this.subtotal, taxAmount: this.taxAmount || undefined, otherCharges: this.otherCharges || undefined,
-        totalAmount: this.totalAmount, amountPaid: this.amountPaid || 0, remark: this.remark || undefined
-      });
-      if (newPurchaseInvoice.amountPaid > 0) { this.supplierPaymentService.recordPayment({ supplierId: newPurchaseInvoice.supplierId, purchaseInvoiceId: newPurchaseInvoice.id, amount: newPurchaseInvoice.amountPaid, paymentDate: newPurchaseInvoice.purchaseDate, paymentMethod: 'UPFRONT', notes: `Initial payment for purchase #${newPurchaseInvoice.supplierInvoiceNo}` }); }
-      alert('Purchase recorded successfully!');
-      this.router.navigate(['/purchases']);
+    try {
+      if (this.editMode && this.currentPurchaseId) {
+        const updatedData = {
+          supplierId: supplierToUse.id, 
+          supplierInvoiceNo: this.supplierInvoiceNo, 
+          purchaseDate: new Date(this.purchaseDate),
+          items: this.purchaseItems, 
+          subtotal: this.subtotal, 
+          taxAmount: this.taxAmount || undefined, 
+          otherCharges: this.otherCharges || undefined,
+          totalAmount: this.totalAmount, 
+          amountPaid: this.amountPaid, 
+          remark: this.remark || undefined
+        };
+        // FIXED: Awaiting updatePurchaseInvoice
+        const result = await this.purchaseService.updatePurchaseInvoice(this.currentPurchaseId, updatedData);
+        if(result) { 
+          alert('Purchase invoice updated successfully!'); 
+          this.router.navigate(['/purchases']); 
+        } else { 
+          alert('Failed to update purchase invoice.'); 
+        }
+      } else {
+        // FIXED: Awaiting createPurchaseInvoice
+        const newPurchaseInvoice = await this.purchaseService.createPurchaseInvoice({
+          supplierId: supplierToUse.id, 
+          supplierInvoiceNo: this.supplierInvoiceNo, 
+          purchaseDate: new Date(this.purchaseDate),
+          items: this.purchaseItems, 
+          subtotal: this.subtotal, 
+          taxAmount: this.taxAmount || undefined, 
+          otherCharges: this.otherCharges || undefined,
+          totalAmount: this.totalAmount, 
+          amountPaid: this.amountPaid || 0, 
+          remark: this.remark || undefined
+        });
+        
+        if (newPurchaseInvoice.amountPaid > 0) { 
+          await this.supplierPaymentService.recordPayment({ 
+            supplierId: newPurchaseInvoice.supplierId, 
+            purchaseInvoiceId: newPurchaseInvoice.id, 
+            amount: newPurchaseInvoice.amountPaid, 
+            paymentDate: newPurchaseInvoice.purchaseDate, 
+            paymentMethod: 'UPFRONT', 
+            notes: `Initial payment for purchase #${newPurchaseInvoice.supplierInvoiceNo}` 
+          }); 
+        }
+        
+        alert('Purchase recorded successfully!');
+        this.router.navigate(['/purchases']);
+      }
+    } catch (error: any) {
+      alert(`Error saving purchase: ${error.message}`);
     }
   }
 
@@ -231,9 +295,10 @@ export class PurchaseFormComponent implements OnInit {
     this.showDeleteConfirmation = false;
   }
 
-  confirmDelete(): void {
+  async confirmDelete(): Promise<void> {
     if (!this.currentPurchaseId) return;
-    const success = this.purchaseService.deletePurchaseInvoice(this.currentPurchaseId);
+    // FIXED: Awaiting deletePurchaseInvoice
+    const success = await this.purchaseService.deletePurchaseInvoice(this.currentPurchaseId);
     if (success) {
       alert('Purchase invoice has been deleted successfully.');
       this.router.navigate(['/purchases']);

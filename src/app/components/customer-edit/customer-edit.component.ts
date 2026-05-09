@@ -53,45 +53,69 @@ export class CustomerEditComponent implements OnInit {
     this.isLoading = false;
   }
 
-  saveCustomer(): void {
-    if (!this.customer || !this.customerId) {
-      alert('Error: No customer data to save.');
-      return;
-    }
-    if (!this.customerName.trim()) {
-        alert('Customer name cannot be empty.');
-        return;
-    }
+  // saveCustomer(): void {
+  //   if (!this.customer || !this.customerId) {
+  //     alert('Error: No customer data to save.');
+  //     return;
+  //   }
+  //   if (!this.customerName.trim()) {
+  //       alert('Customer name cannot be empty.');
+  //       return;
+  //   }
+
+  //   this.isSaving = true;
+
+  //   const updatedCustomerData: Partial<Omit<Customer, 'id' | 'createdAt' | 'creditBalance'>> = {
+  //     name: this.customerName.trim(),
+  //     phone: this.customerPhone.trim() || undefined,
+  //     email: this.customerEmail.trim() || undefined,
+  //     address: this.customerAddress.trim() || undefined,
+  //     // creditBalance is not updated from this form
+  //     // updatedAt will be handled by the service
+  //   };
+
+  //   try {
+  //     const result = this.customerService.updateCustomer(this.customerId, updatedCustomerData);
+  //     if (result) {
+  //       alert('Customer details updated successfully!');
+  //       this.router.navigate(['/customers']);
+  //     } else {
+  //       alert('Failed to update customer. Customer not found or no changes made.');
+  //       // The service might have alerted for duplicate phone/email already
+  //     }
+  //   } catch (error: any) {
+  //       // Catch errors thrown by customerService (e.g., duplicate phone/email)
+  //       console.error("Error updating customer:", error);
+  //       alert(`Error: ${error.message || 'Could not update customer details.'}`);
+  //   } finally {
+  //       this.isSaving = false;
+  //   }
+  // }
+async saveCustomer(): Promise<void> {
+    if (!this.customer || !this.customerId) return;
+    if (!this.customerName.trim()) { alert('Name required'); return; }
 
     this.isSaving = true;
-
-    const updatedCustomerData: Partial<Omit<Customer, 'id' | 'createdAt' | 'creditBalance'>> = {
+    const updatedData = {
       name: this.customerName.trim(),
       phone: this.customerPhone.trim() || undefined,
       email: this.customerEmail.trim() || undefined,
       address: this.customerAddress.trim() || undefined,
-      // creditBalance is not updated from this form
-      // updatedAt will be handled by the service
     };
 
     try {
-      const result = this.customerService.updateCustomer(this.customerId, updatedCustomerData);
-      if (result) {
-        alert('Customer details updated successfully!');
+      // Added await here
+      const success = await this.customerService.updateCustomer(this.customerId, updatedData);
+      if (success) {
+        alert('Customer updated successfully!');
         this.router.navigate(['/customers']);
-      } else {
-        alert('Failed to update customer. Customer not found or no changes made.');
-        // The service might have alerted for duplicate phone/email already
       }
     } catch (error: any) {
-        // Catch errors thrown by customerService (e.g., duplicate phone/email)
-        console.error("Error updating customer:", error);
-        alert(`Error: ${error.message || 'Could not update customer details.'}`);
+      alert(`Error: ${error.message}`);
     } finally {
-        this.isSaving = false;
+      this.isSaving = false;
     }
   }
-
   cancelEdit(): void {
     this.router.navigate(['/customers']);
   }

@@ -1,5 +1,4 @@
 import { Injectable, inject, Injector } from '@angular/core';
-
 import { PurchaseInvoice, PurchaseItem, PurchaseStatus } from '../models/purchase.model';
 import { StorageService } from './storage.service';
 import { ProductService } from './product.service';
@@ -15,46 +14,73 @@ export class PurchaseService {
   private storageService = inject(StorageService);
   private productService = inject(ProductService);
   private supplierService = inject(SupplierService);
-private injector = inject(Injector);
+  private injector = inject(Injector);
+
   private purchasesSubject = new BehaviorSubject<PurchaseInvoice[]>([]);
   public purchases$: Observable<PurchaseInvoice[]> = this.purchasesSubject.asObservable();
 
   constructor() {
-    this.purchasesSubject.next(this.storageService.getData(this.PURCHASES_KEY) || []);
+    this.refreshPurchases();
   }
 
-  private saveDataAndNotify(purchases: PurchaseInvoice[]): void {
-    this.storageService.saveData(this.PURCHASES_KEY, purchases);
-    this.purchasesSubject.next([...purchases]);
+  /**
+   * Syncs the internal BehaviorSubject with the SQLite database
+   */
+  async refreshPurchases(): Promise<void> {
+    const data = await window.electronAPI.getPurchases();
+    // Parse JSON items stored in SQLite back into an array
+    const formattedData = data.map((p: any) => ({
+      ...p,
+      items: typeof p.items === 'string' ? JSON.parse(p.items) : p.items,
+      createdAt: new Date(p.createdAt),
+      updatedAt: new Date(p.updatedAt),
+      purchaseDate: new Date(p.purchaseDate)
+    }));
+    this.purchasesSubject.next(formattedData);
   }
 
   getAllPurchases(): PurchaseInvoice[] {
     return this.purchasesSubject.getValue();
   }
 
-  getPurchaseById(id: string): PurchaseInvoice | undefined {
-    return this.getAllPurchases().find(p => p.id === id);
+  async getPurchaseById(id: string): Promise<PurchaseInvoice | undefined> {
+    const purchase = await window.electronAPI.getPurchase(id);
+    if (purchase) {
+      return {
+        ...purchase,
+        items: typeof purchase.items === 'string' ? JSON.parse(purchase.items) : purchase.items,
+        createdAt: new Date(purchase.createdAt),
+        updatedAt: new Date(purchase.updatedAt),
+        purchaseDate: new Date(purchase.purchaseDate)
+      };
+    }
+    return undefined;
   }
 
-  createPurchaseInvoice(invoiceData: Omit<PurchaseInvoice, 'id' | 'createdAt' | 'updatedAt' | 'status'>): PurchaseInvoice {
-    const purchases = this.getAllPurchases();
-
-    invoiceData.items.forEach(item => {
+  async createPurchaseInvoice(invoiceData: Omit<PurchaseInvoice, 'id' | 'createdAt' | 'updatedAt' | 'status'>): Promise<PurchaseInvoice> {
+    // 1. Create any new products first
+    for (const item of invoiceData.items) {
       if (item.isNew && !item.productId) {
-        const newProduct = this.productService.addProduct({
-          name: item.productName, price: item.sellingPrice || 0,
-          purchasePrice: item.purchasePrice, stock: 0, category: '', description: ''
+        const newProduct = await this.productService.addProduct({
+          name: item.productName, 
+          price: item.sellingPrice || 0,
+          purchasePrice: item.purchasePrice, 
+          stock: 0, 
+          category: '', 
+          description: ''
         });
         item.productId = newProduct.id;
       }
-    });
+    }
 
-    invoiceData.items.forEach(item => {
-      this.productService.updateProduct(item.productId!, { purchasePrice: item.purchasePrice });
-      this.productService.updateStock(item.productId!, item.quantity);
-    });
+    // 2. Update stock and prices for all items
+    for (const item of invoiceData.items) {
+      await this.productService.updateProduct(item.productId!, { purchasePrice: item.purchasePrice });
+      await this.productService.updateStock(item.productId!, item.quantity);
+    }
 
-    this.supplierService.updateSupplierBalance(invoiceData.supplierId, invoiceData.totalAmount);
+    // 3. Update supplier balance
+    await this.supplierService.updateSupplierBalance(invoiceData.supplierId, invoiceData.totalAmount);
     
     let status: PurchaseStatus;
     if (invoiceData.amountPaid >= invoiceData.totalAmount) { status = PurchaseStatus.PAID; }
@@ -63,64 +89,88 @@ private injector = inject(Injector);
 
     const newPurchase: PurchaseInvoice = {
       ...invoiceData,
-      id: this.storageService.generateId(), status: status,
-      createdAt: new Date(), updatedAt: new Date()
+      id: this.storageService.generateId(), 
+      status: status,
+      createdAt: new Date(), 
+      updatedAt: new Date()
     };
 
-    this.saveDataAndNotify([...purchases, newPurchase]);
+    // Prepare for SQLite (stringify items and format dates)
+    const dbPayload = {
+      ...newPurchase,
+      items: JSON.stringify(newPurchase.items),
+      createdAt: newPurchase.createdAt.toISOString(),
+      updatedAt: newPurchase.updatedAt.toISOString(),
+      purchaseDate: newPurchase.purchaseDate instanceof Date ? 
+                    newPurchase.purchaseDate.toISOString() : 
+                    new Date(newPurchase.purchaseDate).toISOString()
+    };
+
+    await window.electronAPI.addPurchase(dbPayload);
+    await this.refreshPurchases();
     return newPurchase;
   }
   
-  updatePurchaseInvoice(id: string, updateData: Partial<Omit<PurchaseInvoice, 'id' | 'createdAt'>>): PurchaseInvoice | null {
-    const purchases = this.getAllPurchases();
-    const index = purchases.findIndex(p => p.id === id);
-    if (index === -1) { return null; }
-    
-    const originalInvoice = purchases[index];
+  async updatePurchaseInvoice(id: string, updateData: Partial<Omit<PurchaseInvoice, 'id' | 'createdAt'>>): Promise<PurchaseInvoice | null> {
+    const originalInvoice = await this.getPurchaseById(id);
+    if (!originalInvoice) return null;
+
     const updatedInvoice = { ...originalInvoice, ...updateData, updatedAt: new Date() };
     
+    // 1. Handle stock adjustments
     const stockAdjustments = this._calculateStockAdjustments(originalInvoice.items, updatedInvoice.items);
-    stockAdjustments.forEach(adj => this.productService.updateStock(adj.productId, adj.quantityChange));
-    
-    const balanceChange = updatedInvoice.totalAmount - originalInvoice.totalAmount;
-    const paymentChange = updatedInvoice.amountPaid - originalInvoice.amountPaid;
-    const netBalanceChange = balanceChange - paymentChange;
-    if (netBalanceChange !== 0) {
-      this.supplierService.updateSupplierBalance(updatedInvoice.supplierId, netBalanceChange);
+    for (const adj of stockAdjustments) {
+      await this.productService.updateStock(adj.productId, adj.quantityChange);
     }
     
-    purchases[index] = updatedInvoice;
-    this.saveDataAndNotify([...purchases]);
+    // 2. Handle balance changes
+    const balanceChange = (updatedInvoice.totalAmount || 0) - (originalInvoice.totalAmount || 0);
+    const paymentChange = (updatedInvoice.amountPaid || 0) - (originalInvoice.amountPaid || 0);
+    const netBalanceChange = balanceChange - paymentChange;
+    
+    if (netBalanceChange !== 0) {
+      await this.supplierService.updateSupplierBalance(updatedInvoice.supplierId, netBalanceChange);
+    }
+    
+    const dbPayload = {
+      ...updatedInvoice,
+      items: JSON.stringify(updatedInvoice.items),
+      updatedAt: updatedInvoice.updatedAt.toISOString(),
+      purchaseDate: updatedInvoice.purchaseDate instanceof Date ? 
+                    updatedInvoice.purchaseDate.toISOString() : 
+                    new Date(updatedInvoice.purchaseDate).toISOString()
+    };
+
+    await window.electronAPI.updatePurchase(id, dbPayload);
+    await this.refreshPurchases();
     return updatedInvoice;
   }
 
-   deletePurchaseInvoice(id: string): boolean {
+  async deletePurchaseInvoice(id: string): Promise<boolean> {
     const supplierPaymentService = this.injector.get(SupplierPaymentService);
-
-    const allPurchases = this.getAllPurchases();
-    const purchaseIndex = allPurchases.findIndex(p => p.id === id);
-    if (purchaseIndex === -1) {
+    const purchaseToDelete = await this.getPurchaseById(id);
+    
+    if (!purchaseToDelete) {
       console.error(`Purchase invoice with ID ${id} not found.`);
       return false;
     }
     
-    const purchaseToDelete = allPurchases[purchaseIndex];
-    
+    // 1. Reverse stock changes
+    for (const item of purchaseToDelete.items) {
+      await this.productService.updateStock(item.productId!, -item.quantity);
+    }
 
-    purchaseToDelete.items.forEach(item => {
-      this.productService.updateStock(item.productId!, -item.quantity);
-    });
-
-    const associatedPayments = supplierPaymentService.getPaymentsByInvoiceId(id);
-    associatedPayments.forEach(payment => {
-      supplierPaymentService.deletePayment(payment.id);
-    });
+    // 2. Delete associated payments
+    const associatedPayments = await supplierPaymentService.getPaymentsByInvoiceId(id);
+    for (const payment of associatedPayments) {
+      await supplierPaymentService.deletePayment(payment.id);
+    }
     
-    this.supplierService.updateSupplierBalance(purchaseToDelete.supplierId, -purchaseToDelete.totalAmount);
+    // 3. Reverse supplier balance
+    await this.supplierService.updateSupplierBalance(purchaseToDelete.supplierId, -purchaseToDelete.totalAmount);
     
-    const updatedPurchases = allPurchases.filter(p => p.id !== id);
-    this.saveDataAndNotify(updatedPurchases);
-    
+    await window.electronAPI.deletePurchase(id);
+    await this.refreshPurchases();
     return true;
   }
 
@@ -135,7 +185,7 @@ private injector = inject(Injector);
       const newQty = newItemsMap.get(productId) || 0;
       const quantityChange = newQty - originalQty;
       if (quantityChange !== 0) {
-        adjustments.push({ productId, quantityChange: newQty - originalQty }); 
+        adjustments.push({ productId, quantityChange: quantityChange }); 
       }
     });
     return adjustments;

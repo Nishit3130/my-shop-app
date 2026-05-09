@@ -39,11 +39,11 @@ export class PaymentService {
     return this.getAllPayments().filter(p => p.customerId === customerId).sort((a,b) => new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime());
   }
 
-  recordPayment(paymentData: Omit<Payment, 'id' | 'createdAt'>): Payment | null {
+  async recordPayment(paymentData: Omit<Payment, 'id' | 'createdAt'>): Promise<Payment | null> {
     if (!paymentData.billId) { throw new Error('Bill ID is missing for the payment.'); }
     if (paymentData.amount <= 0.005) { throw new Error('Payment amount must be positive.'); }
 
-    const bill = this.billingService.getBillById(paymentData.billId);
+    const bill = await this.billingService.getBillById(paymentData.billId);
     if (!bill) { throw new Error(`Bill not found for ID: ${paymentData.billId}`); }
 
     const transactionAmount = paymentData.amount;
@@ -79,13 +79,13 @@ export class PaymentService {
     return newPayment;
   }
   
-  applyCreditToBill(billId: string, amountToApply: number): Payment | null {
-    const bill = this.billingService.getBillById(billId);
+  async applyCreditToBill(billId: string, amountToApply: number): Promise<Payment | null> {
+    const bill = await this.billingService.getBillById(billId);
     if (!bill || !bill.customerId) {
       throw new Error("Credit can only be applied to a bill linked to a customer.");
     }
 
-    const customer = this.customerService.getCustomerById(bill.customerId);
+    const customer = await this.customerService.getCustomerById(bill.customerId);
     if (!customer) {
       throw new Error("Associated customer not found.");
     }
@@ -118,8 +118,8 @@ export class PaymentService {
     return this.recordPayment(paymentData);
   }
   
-  settleBill(billId: string, settlementPaymentMethod: string = 'SETTLEMENT', notes?: string): Payment | null {
-    const bill = this.billingService.getBillById(billId);
+  async settleBill(billId: string, settlementPaymentMethod: string = 'SETTLEMENT', notes?: string): Promise<Payment | null> {
+    const bill = await this.billingService.getBillById(billId);
     if (!bill) { throw new Error(`Bill not found: ${billId}`); }
     if (!bill.customerId) { throw new Error('Cannot settle a bill that is not linked to a customer profile.');}
 

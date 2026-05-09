@@ -19,11 +19,25 @@ export class SupplierPaymentService {
   public supplierPayments$: Observable<SupplierPayment[]> = this.supplierPaymentsSubject.asObservable();
 
   constructor() {
-    this.supplierPaymentsSubject.next(this.storageService.getData(this.PAYMENTS_KEY) || []);
+    this.refreshPayments();
   }
 
-  private saveDataAndNotify(payments: SupplierPayment[]): void {
-    this.storageService.saveData(this.PAYMENTS_KEY, payments);
+  /**
+   * Syncs the internal BehaviorSubject with the SQLite database
+   */
+  async refreshPayments(): Promise<void> {
+    const data = await window.electronAPI.getPayments();
+    const formattedData = (data || []).map((p: any) => ({
+      ...p,
+      createdAt: new Date(p.createdAt),
+      paymentDate: new Date(p.paymentDate)
+    }));
+    this.supplierPaymentsSubject.next(formattedData);
+  }
+
+  private async saveDataAndNotify(payments: SupplierPayment[]): Promise<void> {
+    // Note: In a full SQLite migration, individual saves happen in record/delete methods.
+    // This helper remains for BehaviorSubject notification.
     this.supplierPaymentsSubject.next([...payments]);
   }
 
@@ -34,80 +48,117 @@ export class SupplierPaymentService {
   getPaymentsBySupplierId(supplierId: string): SupplierPayment[] {
     return this.getAllPayments().filter(p => p.supplierId === supplierId);
   }
-  getPaymentsByInvoiceId(invoiceId: string): SupplierPayment[] {
-    return this.getAllPayments().filter(p => p.purchaseInvoiceId === invoiceId);
-  }
 
-  recordPayment(paymentData: Omit<SupplierPayment, 'id' | 'createdAt'>): SupplierPayment {
+  /**
+   * UPDATED: Now asynchronous to handle SQLite calls correctly
+   */
+  async getPaymentsByInvoiceId(invoiceId: string): Promise<SupplierPayment[]> {
+    const allPayments = await window.electronAPI.getPayments();
+    return (allPayments || []).filter((p: any) => p.purchaseInvoiceId === invoiceId);
+  }
+
+  /**
+   * UPDATED: Asynchronous method to fix build errors in PurchaseService and UI
+   */
+  async recordPayment(paymentData: Omit<SupplierPayment, 'id' | 'createdAt'>): Promise<SupplierPayment> {
     if (paymentData.amount <= 0) {
       throw new Error('Payment amount must be positive.');
     }
-    const allPayments = this.getAllPayments();
+
     const newPayment: SupplierPayment = {
       ...paymentData,
       id: this.storageService.generateId(),
       createdAt: new Date()
     };
-    this.saveDataAndNotify([...allPayments, newPayment]);
 
-    this.supplierService.updateSupplierBalance(paymentData.supplierId, -paymentData.amount);
+    // 1. Save the payment to SQLite
+    await window.electronAPI.addPayment({
+      ...newPayment,
+      createdAt: newPayment.createdAt.toISOString(),
+      paymentDate: newPayment.paymentDate instanceof Date ? 
+                   newPayment.paymentDate.toISOString() : 
+                   new Date(newPayment.paymentDate).toISOString()
+    });
 
+    // 2. Update Supplier Balance
+    await this.supplierService.updateSupplierBalance(paymentData.supplierId, -paymentData.amount);
+
+    // 3. Update Purchase Invoice Status
     if (paymentData.purchaseInvoiceId) {
-      const invoice = this.purchaseService.getPurchaseById(paymentData.purchaseInvoiceId);
+      // AWAIT the promise to get the actual invoice object
+      const invoice = await this.purchaseService.getPurchaseById(paymentData.purchaseInvoiceId);
       if (invoice) {
         const newAmountPaid = invoice.amountPaid + paymentData.amount;
         let newStatus = invoice.status;
+        
         if (newAmountPaid >= invoice.totalAmount) {
           newStatus = PurchaseStatus.PAID;
         } else {
           newStatus = PurchaseStatus.PARTIALLY_PAID;
         }
-        this.purchaseService.updatePurchaseInvoice(invoice.id, {
+
+        await this.purchaseService.updatePurchaseInvoice(invoice.id, {
           amountPaid: parseFloat(newAmountPaid.toFixed(2)),
           status: newStatus
         });
       }
     }
+
+    await this.refreshPayments();
     return newPayment;
   }
 
-  // deletePaymentsByInvoiceId(invoiceId: string): void {
-  //   const allPayments = this.getAllPayments();
-  //   const paymentsToKeep = allPayments.filter(p => p.purchaseInvoiceId !== invoiceId);
-  //   this.saveDataAndNotify(paymentsToKeep);
-  // }
-   deletePaymentsByInvoiceId_RecordsOnly(invoiceId: string): void {
-    const allPayments = this.getAllPayments();
-    const paymentsToKeep = allPayments.filter(p => p.purchaseInvoiceId !== invoiceId);
-    this.saveDataAndNotify(paymentsToKeep);
-  }
-deletePayment(paymentId: string): boolean {
-    const allPayments = this.getAllPayments();
-    const paymentIndex = allPayments.findIndex(p => p.id === paymentId);
-    if (paymentIndex === -1) {
-      console.error(`Payment with ID ${paymentId} not found for deletion.`);
-      return false;
-    }
+  /**
+   * RESTORED AND UPDATED: Matches original naming while supporting SQLite
+   */
+  async deletePaymentsByInvoiceId_RecordsOnly(invoiceId: string): Promise<void> {
+    const allPayments = await window.electronAPI.getPayments();
+    const paymentsToDelete = allPayments.filter((p: any) => p.purchaseInvoiceId === invoiceId);
+    
+    for (const payment of paymentsToDelete) {
+      await window.electronAPI.deletePayment(payment.id);
+    }
+    await this.refreshPayments();
+  }
 
-    const paymentToDelete = allPayments[paymentIndex];
-    this.supplierService.updateSupplierBalance(paymentToDelete.supplierId, paymentToDelete.amount);
-    if (paymentToDelete.purchaseInvoiceId) {
-      const invoice = this.purchaseService.getPurchaseById(paymentToDelete.purchaseInvoiceId);
-      if (invoice) {
-        const newAmountPaid = invoice.amountPaid - paymentToDelete.amount;
-        let newStatus = invoice.status;
-        if (newAmountPaid <= 0) { newStatus = PurchaseStatus.UNPAID; }
-        else if (newAmountPaid < invoice.totalAmount) { newStatus = PurchaseStatus.PARTIALLY_PAID; }
+  /**
+   * UPDATED: Asynchronous method to resolve build errors and handle stock/balance reversal
+   */
+  async deletePayment(paymentId: string): Promise<boolean> {
+    const allPayments = this.getAllPayments();
+    const paymentToDelete = allPayments.find(p => p.id === paymentId);
+    
+    if (!paymentToDelete) {
+      console.error(`Payment with ID ${paymentId} not found for deletion.`);
+      return false;
+    }
 
-        this.purchaseService.updatePurchaseInvoice(invoice.id, {
-          amountPaid: parseFloat(Math.max(0, newAmountPaid).toFixed(2)),
-          status: newStatus
-        });
-      }
-    }
-    const updatedPayments = allPayments.filter(p => p.id !== paymentId);
-    this.saveDataAndNotify(updatedPayments);
+    // 1. Reverse Supplier Balance
+    await this.supplierService.updateSupplierBalance(paymentToDelete.supplierId, paymentToDelete.amount);
 
-    return true;
-  }
+    // 2. Reverse Purchase Invoice Balance
+    if (paymentToDelete.purchaseInvoiceId) {
+      const invoice = await this.purchaseService.getPurchaseById(paymentToDelete.purchaseInvoiceId);
+      if (invoice) {
+        const newAmountPaid = invoice.amountPaid - paymentToDelete.amount;
+        let newStatus = invoice.status;
+        
+        if (newAmountPaid <= 0) { 
+          newStatus = PurchaseStatus.UNPAID; 
+        } else if (newAmountPaid < invoice.totalAmount) { 
+          newStatus = PurchaseStatus.PARTIALLY_PAID; 
+        }
+
+        await this.purchaseService.updatePurchaseInvoice(invoice.id, {
+          amountPaid: parseFloat(Math.max(0, newAmountPaid).toFixed(2)),
+          status: newStatus
+        });
+      }
+    }
+
+    // 3. Delete from SQLite
+    await window.electronAPI.deletePayment(paymentId);
+    await this.refreshPayments();
+    return true;
+  }
 }

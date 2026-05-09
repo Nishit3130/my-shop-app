@@ -82,18 +82,25 @@ export class BillingComponent implements OnInit, OnDestroy {
       const idParam = params.get('id');
       const isConvertingQuote = this.route.snapshot.url[1]?.path === 'from-quote';
       if (idParam && !isConvertingQuote) {
-        this.editMode = true; this.editingBillId = idParam; this.loadBillForEditing(idParam);
+        this.editMode = true; 
+        this.editingBillId = idParam; 
+        this.loadBillForEditing(idParam);
       } else if (idParam && isConvertingQuote) {
-        this.originalQuoteIdToDelete = idParam; this.documentMode = DocumentType.BILL;
-        this.pageTitle = 'Convert Quotation to Bill'; this.loadBillForEditing(idParam, false);
+        this.originalQuoteIdToDelete = idParam; 
+        this.documentMode = DocumentType.BILL;
+        this.pageTitle = 'Convert Quotation to Bill'; 
+        this.loadBillForEditing(idParam, false);
         this.editMode = false;
       } else {
-        this.editMode = false; this.editingBillId = null; this.pageTitle = 'Create New Bill';
+        this.editMode = false; 
+        this.editingBillId = null; 
+        this.pageTitle = 'Create New Bill';
         if (this.billingStateService.hasState()) {
           if (confirm('You have an unsaved draft. Do you want to restore it?')) {
             this.restoreState(this.billingStateService.getState());
           } else {
-            this.billingStateService.clearBillingState(); this.resetBill();
+            this.billingStateService.clearBillingState(); 
+            this.resetBill();
           }
         } else {
           this.resetBill();
@@ -109,30 +116,46 @@ export class BillingComponent implements OnInit, OnDestroy {
   saveDraft(): void {
     if (this.editMode || this.documentMode === DocumentType.QUOTATION) { return; }
     const state: BillingFormState = {
-        customerName: this.customerName, customerPhone: this.customerPhone, customerEmail: '',
-        customerAddress: this.customerAddress, selectedCustomer: this.selectedCustomer,
-        customerCreditBalance: this.selectedCustomer?.creditBalance || 0, paymentType: this.paymentType,
-        remark: this.remark, transportName: this.transportName, cart: this.cart,
-        discount: this.discount, taxAmountInput: this.taxAmountInput, packingCharge: this.packingCharge,
-        handlingCharge: this.handlingCharge, deliveryCharge: this.deliveryCharge,
+        customerName: this.customerName, 
+        customerPhone: this.customerPhone, 
+        customerEmail: '',
+        customerAddress: this.customerAddress, 
+        selectedCustomer: this.selectedCustomer,
+        customerCreditBalance: this.selectedCustomer?.creditBalance || 0, 
+        paymentType: this.paymentType,
+        remark: this.remark, 
+        transportName: this.transportName, 
+        cart: this.cart,
+        discount: this.discount, 
+        taxAmountInput: this.taxAmountInput, 
+        packingCharge: this.packingCharge,
+        handlingCharge: this.handlingCharge, 
+        deliveryCharge: this.deliveryCharge,
         applyAvailableCreditToBill: this.applyCreditToBill,
     };
     this.billingStateService.updateState(state);
   }
 
   restoreState(state: BillingFormState): void {
-    this.customerName = state.customerName; this.customerPhone = state.customerPhone;
-    this.customerAddress = state.customerAddress; this.selectedCustomer = state.selectedCustomer;
-    this.paymentType = state.paymentType; this.remark = state.remark;
-    this.transportName = state.transportName; this.cart = state.cart;
-    this.discount = state.discount; this.taxAmountInput = state.taxAmountInput;
-    this.packingCharge = state.packingCharge; this.handlingCharge = state.handlingCharge;
-    this.deliveryCharge = state.deliveryCharge; this.applyCreditToBill = state.applyAvailableCreditToBill;
+    this.customerName = state.customerName; 
+    this.customerPhone = state.customerPhone;
+    this.customerAddress = state.customerAddress; 
+    this.selectedCustomer = state.selectedCustomer;
+    this.paymentType = state.paymentType; 
+    this.remark = state.remark;
+    this.transportName = state.transportName; 
+    this.cart = state.cart;
+    this.discount = state.discount; 
+    this.taxAmountInput = state.taxAmountInput;
+    this.packingCharge = state.packingCharge; 
+    this.handlingCharge = state.handlingCharge;
+    this.deliveryCharge = state.deliveryCharge; 
+    this.applyCreditToBill = state.applyAvailableCreditToBill;
     this.calculateAllTotals();
   }
 
-  loadBillForEditing(docId: string, isEdit: boolean = true): void {
-    const docToEdit = this.billingService.getBillById(docId);
+  async loadBillForEditing(docId: string, isEdit: boolean = true): Promise<void> {
+    const docToEdit = await this.billingService.getBillById(docId);
     if (docToEdit) {
       if (isEdit) {
         this.originalBillForEdit = JSON.parse(JSON.stringify(docToEdit));
@@ -145,11 +168,18 @@ export class BillingComponent implements OnInit, OnDestroy {
         const customer = this.customerService.getCustomerById(docToEdit.customerId);
         if (customer) { this.selectCustomer(customer); }
       }
-      this.paymentType = docToEdit.paymentType; this.remark = docToEdit.remark || '';
+      this.paymentType = docToEdit.paymentType; 
+      this.remark = docToEdit.remark || '';
       this.transportName = docToEdit.transportName || '';
-      this.cart = docToEdit.items.map(item => ({ ...item, discountType: item.discountType || 'FIXED', discountValue: item.discountValue || 0 }));
-      this.discount = docToEdit.discount || 0; this.packingCharge = docToEdit.packingCharge || 0;
-      this.handlingCharge = docToEdit.handlingCharge || 0; this.deliveryCharge = docToEdit.deliveryCharge || 0;
+      this.cart = docToEdit.items.map(item => ({ 
+        ...item, 
+        discountType: item.discountType || 'FIXED', 
+        discountValue: item.discountValue || 0 
+      }));
+      this.discount = docToEdit.discount || 0; 
+      this.packingCharge = docToEdit.packingCharge || 0;
+      this.handlingCharge = docToEdit.handlingCharge || 0; 
+      this.deliveryCharge = docToEdit.deliveryCharge || 0;
       this.taxAmountInput = docToEdit.tax || 0;
       this.calculateAllTotals();
     } else {
@@ -177,9 +207,12 @@ export class BillingComponent implements OnInit, OnDestroy {
   }
 
   selectCustomer(customer: Customer): void {
-    this.selectedCustomer = customer; this.customerName = customer.name;
-    this.customerPhone = customer.phone || ''; this.customerAddress = customer.address || '';
-    this.customerSearchResults = []; this.showCustomerSearchResults = false;
+    this.selectedCustomer = customer; 
+    this.customerName = customer.name;
+    this.customerPhone = customer.phone || ''; 
+    this.customerAddress = customer.address || '';
+    this.customerSearchResults = []; 
+    this.showCustomerSearchResults = false;
     this.saveDraft();
   }
   
@@ -187,41 +220,85 @@ export class BillingComponent implements OnInit, OnDestroy {
 
   onProductInputKeydown(event: KeyboardEvent): void {
     if (this.showProductSearchResults) {
-      if (event.key === 'ArrowDown') { event.preventDefault(); this.activeSuggestionIndex = (this.activeSuggestionIndex + 1) % this.productSearchResults.length; }
-      else if (event.key === 'ArrowUp') { event.preventDefault(); this.activeSuggestionIndex = (this.activeSuggestionIndex - 1 + this.productSearchResults.length) % this.productSearchResults.length; }
+      if (event.key === 'ArrowDown') { 
+        event.preventDefault(); 
+        this.activeSuggestionIndex = (this.activeSuggestionIndex + 1) % this.productSearchResults.length; 
+      }
+      else if (event.key === 'ArrowUp') { 
+        event.preventDefault(); 
+        this.activeSuggestionIndex = (this.activeSuggestionIndex - 1 + this.productSearchResults.length) % this.productSearchResults.length; 
+      }
       else if (event.key === 'Enter') {
         event.preventDefault();
-        if (this.activeSuggestionIndex > -1) { this.selectProduct(this.productSearchResults[this.activeSuggestionIndex]); }
-        else if (this.productSearchResults.length > 0) { this.selectProduct(this.productSearchResults[0]); }
+        if (this.activeSuggestionIndex > -1) { 
+          this.selectProduct(this.productSearchResults[this.activeSuggestionIndex]); 
+        }
+        else if (this.productSearchResults.length > 0) { 
+          this.selectProduct(this.productSearchResults[0]); 
+        }
         else { this.addProductToCart(); }
       } else if (event.key === 'Escape') { this.hideProductResults(); }
     }
   }
 
   onProductInput(): void {
-    if (!this.newItem.productName || this.newItem.productName.trim().length < 2) { this.productSearchResults = []; this.showProductSearchResults = false; return; }
-    this.showProductSearchResults = true; this.activeSuggestionIndex = -1;
-    this.productSearchResults = this.productService.getProducts().filter(p => p.name.toLowerCase().includes(this.newItem.productName.toLowerCase())).slice(0, 7);
+    if (!this.newItem.productName || this.newItem.productName.trim().length < 2) { 
+      this.productSearchResults = []; 
+      this.showProductSearchResults = false; 
+      return; 
+    }
+    this.showProductSearchResults = true; 
+    this.activeSuggestionIndex = -1;
+    this.productSearchResults = this.productService.getProducts().filter(p => 
+      p.name.toLowerCase().includes(this.newItem.productName.toLowerCase())
+    ).slice(0, 7);
   }
 
   selectProduct(product: Product): void {
-    this.newItem.product = product; this.newItem.productName = product.name;
-    this.newItem.price = product.price; this.newItem.stock = product.stock;
-    this.newItem.quantity = 1; this.hideProductResults();
+    this.newItem.product = product; 
+    this.newItem.productName = product.name;
+    this.newItem.price = product.price; 
+    this.newItem.stock = product.stock;
+    this.newItem.quantity = 1; 
+    this.hideProductResults();
   }
 
-  hideProductResults(): void { setTimeout(() => { this.showProductSearchResults = false; this.activeSuggestionIndex = -1; }, 200); }
+  hideProductResults(): void { 
+    setTimeout(() => { 
+      this.showProductSearchResults = false; 
+      this.activeSuggestionIndex = -1; 
+    }, 200); 
+  }
 
   addProductToCart(): void {
     const isProductSelected = !!this.newItem.product;
     const isManualEntry = !isProductSelected && this.newItem.productName.trim() !== '' && this.newItem.price >= 0;
-    if (!isProductSelected && !isManualEntry) { alert('Please select a product or manually type a name and price.'); return; }
+    if (!isProductSelected && !isManualEntry) { 
+      alert('Please select a product or manually type a name and price.'); 
+      return; 
+    }
     if (this.newItem.quantity <= 0) { alert('Quantity must be greater than zero.'); return; }
+    
     let cartItem: BillItem;
     if (isProductSelected) {
-      cartItem = { productId: this.newItem.product!.id, productName: this.newItem.product!.name, quantity: this.newItem.quantity, price: this.newItem.price, total: this.newItem.quantity * this.newItem.price, discountType: 'FIXED', discountValue: 0 };
+      cartItem = { 
+        productId: this.newItem.product!.id, 
+        productName: this.newItem.product!.name, 
+        quantity: this.newItem.quantity, 
+        price: this.newItem.price, 
+        total: this.newItem.quantity * this.newItem.price, 
+        discountType: 'FIXED', 
+        discountValue: 0 
+      };
     } else {
-      cartItem = { productName: this.newItem.productName.trim(), quantity: this.newItem.quantity, price: this.newItem.price, total: this.newItem.quantity * this.newItem.price, discountType: 'FIXED', discountValue: 0 };
+      cartItem = { 
+        productName: this.newItem.productName.trim(), 
+        quantity: this.newItem.quantity, 
+        price: this.newItem.price, 
+        total: this.newItem.quantity * this.newItem.price, 
+        discountType: 'FIXED', 
+        discountValue: 0 
+      };
     }
     this.cart.push(cartItem); 
     this.calculateAllTotals(); 
@@ -244,7 +321,7 @@ export class BillingComponent implements OnInit, OnDestroy {
   }
   
   calculateTotalItemDiscount(): number {
-    return this.cart.reduce((sum, item) => {
+    return this.cart.reduce((sum: number, item: BillItem) => {
       if (item.discountValue && item.discountValue > 0) {
         const itemBaseTotal = (item.price || 0) * (item.quantity || 0);
         if (item.discountType === 'PERCENT') {
@@ -257,14 +334,17 @@ export class BillingComponent implements OnInit, OnDestroy {
   }
   
   calculateBaseSubtotal(): number {
-    return this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    return this.cart.reduce((sum: number, item: BillItem) => sum + (item.price * item.quantity), 0);
   }
 
   calculateNetSubtotal(): number {
     return parseFloat((this.baseSubtotal - this.totalItemDiscount).toFixed(2));
   }
   
-  calculateOtherChargesTotal(): number { return (Number(this.packingCharge) || 0) + (Number(this.handlingCharge) || 0) + (Number(this.deliveryCharge) || 0); }
+  calculateOtherChargesTotal(): number { 
+    return (Number(this.packingCharge) || 0) + (Number(this.handlingCharge) || 0) + (Number(this.deliveryCharge) || 0); 
+  }
+  
   calculateTaxFromInput(): number { return Number(this.taxAmountInput) || 0; }
   
   calculateGrossTotal(): number {
@@ -275,7 +355,7 @@ export class BillingComponent implements OnInit, OnDestroy {
     return parseFloat(Math.max(0, (netSubtotal - billLevelDiscount) + tax + otherCharges).toFixed(2));
   }
   
-  calculateAllTotals(): void {  
+  calculateAllTotals(): void {   
     this.baseSubtotal = this.calculateBaseSubtotal();
     this.totalItemDiscount = this.calculateTotalItemDiscount();
     this.saveDraft();
@@ -289,16 +369,17 @@ export class BillingComponent implements OnInit, OnDestroy {
     return true;
   }
 
-  saveDocument(): void {
+  async saveDocument(): Promise<void> {
     if (!this.canSaveDocument()) {
       alert("Please fill all required fields and add items.");
       return;
     }
 
     let customerIdToUse: string | undefined = this.selectedCustomer?.id;
+
     if (!customerIdToUse && this.documentMode === DocumentType.BILL && this.paymentType === PaymentType.CREDIT) {
       try {
-        const newCustomer = this.customerService.addCustomer({
+        const newCustomer = await this.customerService.addCustomer({
           name: this.customerName.trim(),
           phone: this.customerPhone.trim(),
           address: this.customerAddress.trim()
@@ -312,6 +393,7 @@ export class BillingComponent implements OnInit, OnDestroy {
 
     const netSubtotal = this.calculateNetSubtotal();
     const billGrossTotal = this.calculateGrossTotal();
+
     const docData: Omit<Bill, 'id' | 'createdAt' | 'updatedAt' | 'billNo'> = {
       documentType: this.documentMode,
       quotationStatus: this.documentMode === DocumentType.QUOTATION ? QuotationStatus.DRAFT : undefined,
@@ -336,64 +418,62 @@ export class BillingComponent implements OnInit, OnDestroy {
       transportName: this.transportName.trim() || undefined,
     };
 
-    if (this.editMode && this.editingBillId && this.originalBillForEdit) {
-      if (this.paymentType === PaymentType.CASH) {
-        docData.amountPaid = billGrossTotal;
-      } else {
-        if (this.originalBillForEdit.paymentType === PaymentType.CASH) {
-          docData.amountPaid = 0;
+    try {
+      if (this.editMode && this.editingBillId && this.originalBillForEdit) {
+        if (this.paymentType === PaymentType.CASH) {
+          docData.amountPaid = billGrossTotal;
         } else {
-          docData.amountPaid = this.originalBillForEdit.amountPaid;
+          docData.amountPaid = this.originalBillForEdit.paymentType === PaymentType.CASH ? 0 : this.originalBillForEdit.amountPaid;
         }
-      }
-      
-      const stockAdjustments = this.billingService.calculateStockAdjustments(this.originalBillForEdit.items, this.cart);
-      stockAdjustments.forEach((adj) => {
-        this.productService.updateStock(adj.productId, adj.quantityChange)
-      });
-      
-      if (this.originalBillForEdit.customerId) {
-        const totalDifference = this.originalBillForEdit.total - docData.total;
         
-        if (Math.abs(totalDifference) > 0.005) { // Use a small epsilon for float comparison
-          this.customerService.updateCustomerCreditBalance(this.originalBillForEdit.customerId, totalDifference);
+        const stockAdjustments = this.billingService.calculateStockAdjustments(this.originalBillForEdit.items, this.cart);
+        for (const adj of stockAdjustments) {
+          await this.productService.updateStock(adj.productId, adj.quantityChange);
         }
-      }
-
-      this.billingService.updateBill(this.editingBillId, docData as Partial<Bill>);
-      alert(`Bill updated.`);
-      this.router.navigate(['/bills']);
-
-    } else if (this.documentMode === DocumentType.BILL) {
-      if (this.paymentType === PaymentType.CASH) {
-        docData.amountPaid = billGrossTotal;
-      }
-      
-      const newBill = this.billingService.createDocument(docData);
-      
-      if (this.paymentType === PaymentType.CREDIT && this.applyCreditToBill && this.selectedCustomer && this.selectedCustomer.creditBalance > 0) {
-        const creditToApply = Math.min(newBill.total, this.selectedCustomer.creditBalance);
-        if (creditToApply > 0) {
-          try {
-            this.paymentService.applyCreditToBill(newBill.id, creditToApply);
-          } catch (error: any) {
-            alert(`Credit could not be applied automatically: ${error.message}`);
+        
+        if (this.originalBillForEdit.customerId) {
+          const totalDifference = this.originalBillForEdit.total - docData.total;
+          if (Math.abs(totalDifference) > 0.005) {
+            await this.customerService.updateCustomerCreditBalance(this.originalBillForEdit.customerId, totalDifference);
           }
         }
-      }
 
-      if (this.originalQuoteIdToDelete) {
-        this.billingService.deleteBill(this.originalQuoteIdToDelete);
-      }
-      this.billingStateService.clearBillingState();
-      this.generatedBill = this.billingService.getBillById(newBill.id) ?? null;
-      this.showBillConfirmation = true;
+        await this.billingService.updateBill(this.editingBillId, docData as Partial<Bill>);
+        alert(`Bill updated successfully.`);
+        this.router.navigate(['/bills']);
 
-    } else { 
-      const newQuotation = this.billingService.createDocument(docData);
-      alert(`Quotation #${newQuotation.billNo} saved successfully!`);
-      this.resetBill();
-      this.router.navigate(['/bills']);
+      } else if (this.documentMode === DocumentType.BILL) {
+        if (this.paymentType === PaymentType.CASH) {
+          docData.amountPaid = billGrossTotal;
+        }
+        
+        const newBill = await this.billingService.createDocument(docData);
+        
+        if (this.paymentType === PaymentType.CREDIT && this.applyCreditToBill && this.selectedCustomer && this.selectedCustomer.creditBalance > 0) {
+          const creditToApply = Math.min(newBill.total, this.selectedCustomer.creditBalance);
+          if (creditToApply > 0) {
+            await this.paymentService.applyCreditToBill(newBill.id, creditToApply);
+          }
+        }
+
+        if (this.originalQuoteIdToDelete) {
+          await this.billingService.deleteBill(this.originalQuoteIdToDelete);
+        }
+
+        this.billingStateService.clearBillingState();
+        // Await the fetch to resolve the Promise
+        this.generatedBill = await this.billingService.getBillById(newBill.id) || null;
+        this.showBillConfirmation = true;
+
+      } else { 
+        const newQuotation = await this.billingService.createDocument(docData);
+        alert(`Quotation #${newQuotation.billNo} saved successfully!`);
+        this.resetBill();
+        this.router.navigate(['/bills']);
+      }
+    } catch (error: any) {
+      alert(`Error processing document: ${error.message}`);
+      console.error(error);
     }
   }
 
@@ -403,12 +483,25 @@ export class BillingComponent implements OnInit, OnDestroy {
 
   resetBill(): void {
     this.billingStateService.clearBillingState();
-    this.documentMode = DocumentType.BILL; this.editMode = false; this.editingBillId = null;
-    this.pageTitle = 'Create New Bill'; this.originalBillForEdit = null; this.cart = [];
-    this.discount = 0; this.taxAmountInput = 0; this.packingCharge = 0; this.handlingCharge = 0;
-    this.deliveryCharge = 0; this.selectedCustomer = null; this.customerName = '';
-    this.customerPhone = ''; this.customerAddress = ''; this.remark = '';
-    this.transportName = ''; this.paymentType = PaymentType.CASH; this.applyCreditToBill = true;
+    this.documentMode = DocumentType.BILL; 
+    this.editMode = false; 
+    this.editingBillId = null;
+    this.pageTitle = 'Create New Bill'; 
+    this.originalBillForEdit = null; 
+    this.cart = [];
+    this.discount = 0; 
+    this.taxAmountInput = 0; 
+    this.packingCharge = 0; 
+    this.handlingCharge = 0;
+    this.deliveryCharge = 0; 
+    this.selectedCustomer = null; 
+    this.customerName = '';
+    this.customerPhone = ''; 
+    this.customerAddress = ''; 
+    this.remark = '';
+    this.transportName = ''; 
+    this.paymentType = PaymentType.CASH; 
+    this.applyCreditToBill = true;
     this.resetNewItem();
     this.calculateAllTotals();
   }

@@ -26,23 +26,16 @@ export class CreditDebitManagementComponent implements OnInit, OnDestroy {
   filteredBills: Bill[] = [];
   selectedBill: Bill | null = null;
   selectedCustomer: Customer | null = null;
-
   pendingCredit: number = 0;
   searchTerm: string = '';
   filterStatus: 'all' | 'pending' | 'paid' = 'all';
-
-  // State for the "Record Payment" modal
   showPaymentModal: boolean = false;
   billForPayment: Bill | null = null;
   paymentAmount: number = 0;
   paymentDate: string = '';
   paymentMethod: string = 'CASH';
   paymentNotes: string = '';
-  
-  // State for the "Apply Credit" feature
   creditToApply: number = 0;
-
-  // Settings and Print Modal state
   settings: AppSettings | null = null;
   showPrintModal: boolean = false;
 
@@ -54,16 +47,15 @@ export class CreditDebitManagementComponent implements OnInit, OnDestroy {
   private settingsService = inject(SettingsService);
 
   ngOnInit(): void {
-    // Subscribe to the bills$ observable to get live data
-    const creditBillsSub = this.billingService.bills$.pipe(
-      map(bills => bills
-        .filter(bill => bill.paymentType === PaymentType.CREDIT)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    const creditBillsSub = this.billingService.documents$.pipe(
+      map((bills: Bill[]) => bills
+        .filter((bill: Bill) => bill.paymentType === PaymentType.CREDIT)
+        .sort((a: Bill, b: Bill) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       )
-    ).subscribe(creditBills => {
+    ).subscribe((creditBills: Bill[]) => {
       this.allCreditBills = creditBills;
-      this.calculatePendingCredit(); // Recalculate summary whenever bills change
-      this.applyFilters(); // Re-apply filters to the list
+      this.calculatePendingCredit(); 
+      this.applyFilters(); 
     });
 
     this.subscriptions.add(creditBillsSub);
@@ -74,7 +66,6 @@ export class CreditDebitManagementComponent implements OnInit, OnDestroy {
     this.subscriptions.unsubscribe();
   }
 
-  // Helper method to format date and time for the datetime-local input
   private formatDateTimeLocal(date: Date): string {
     const year = date.getFullYear();
     const month = ('0' + (date.getMonth() + 1)).slice(-2);
@@ -139,7 +130,7 @@ export class CreditDebitManagementComponent implements OnInit, OnDestroy {
     this.billForPayment = bill;
     this.paymentAmount = parseFloat((bill.total - bill.amountPaid).toFixed(2));
     if (this.paymentAmount < 0) this.paymentAmount = 0;
-    this.paymentDate = this.formatDateTimeLocal(new Date()); // Use new formatter
+    this.paymentDate = this.formatDateTimeLocal(new Date());
     this.paymentMethod = 'CASH';
     this.paymentNotes = '';
     this.showPaymentModal = true;
@@ -154,15 +145,17 @@ export class CreditDebitManagementComponent implements OnInit, OnDestroy {
     this.paymentNotes = '';
   }
 
-  markAsPaid(id: string): void {
-    const billToSettle = this.billingService.getBillById(id);
+  async markAsPaid(id: string): Promise<void> {
+    // FIXED: Added await here so billToSettle is a Bill, not a Promise
+    const billToSettle = await this.billingService.getBillById(id);
     if (!billToSettle) {
       alert("Error: Could not find the bill to settle.");
       return;
     }
     
     try {
-      const paymentRecorded = this.paymentService.settleBill(billToSettle.id, 'FULL_SETTLEMENT_CDM');
+      // AWAIT the asynchronous settlement
+      const paymentRecorded = await this.paymentService.settleBill(billToSettle.id, 'FULL_SETTLEMENT_CDM');
       if (paymentRecorded) {
         alert(`Bill settlement processed for ₹${paymentRecorded.amount.toFixed(2)}.`);
       } else {
@@ -175,7 +168,7 @@ export class CreditDebitManagementComponent implements OnInit, OnDestroy {
     }
   }
 
-  submitPayment(): void {
+  async submitPayment(): Promise<void> {
     if (!this.billForPayment) { alert('Error: No bill selected.'); return; }
     
     try {
@@ -187,20 +180,23 @@ export class CreditDebitManagementComponent implements OnInit, OnDestroy {
         paymentMethod: this.paymentMethod.trim() || 'UNKNOWN',
         notes: this.paymentNotes.trim() || undefined,
       };
-      this.paymentService.recordPayment(paymentData);
+      
+      // AWAIT the database save
+      await this.paymentService.recordPayment(paymentData);
       alert('Payment recorded successfully!');
       this.closePaymentModal();
     } catch (error: any) {
       alert(`Failed to record payment: ${error.message}`);
     }
   }
-  
-  applyCredit(): void {
+    
+  async applyCredit(): Promise<void> {
     if (!this.selectedBill) { alert("No bill selected."); return; }
     if (this.creditToApply <= 0) { alert("Please enter a positive credit amount to apply."); return; }
 
     try {
-      this.paymentService.applyCreditToBill(this.selectedBill.id, this.creditToApply);
+      // AWAIT the credit application
+      await this.paymentService.applyCreditToBill(this.selectedBill.id, this.creditToApply);
       alert(`Successfully applied ₹${this.creditToApply.toFixed(2)} credit to the bill.`);
       this.closeModal();
     } catch(error: any) {

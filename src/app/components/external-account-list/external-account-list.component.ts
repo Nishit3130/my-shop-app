@@ -42,7 +42,6 @@ export class ExternalAccountListComponent implements OnInit, OnDestroy {
   }
 
   loadAccounts(): void {
-    // Obsolete method.
   }
 
   openNewAccountModal(): void {
@@ -67,7 +66,7 @@ export class ExternalAccountListComponent implements OnInit, OnDestroy {
     this.showAccountModal = false;
   }
 
-  saveAccount(): void {
+   async saveAccount(): Promise<void> {
     if (!this.accountName.trim()) {
       alert('Account name is required.');
       return;
@@ -104,7 +103,7 @@ export class ExternalAccountListComponent implements OnInit, OnDestroy {
     this.showDeleteConfirmation = false;
   }
 
-  confirmDelete(): void {
+  async confirmDelete(): Promise<void> {
     if (this.accountToDelete) {
       this.ledgerService.deleteAccount(this.accountToDelete.id);
       this.cancelDelete();

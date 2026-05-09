@@ -1,6 +1,6 @@
+
 import { Injectable, inject } from '@angular/core';
-import { Bill, BillItem, DocumentType, PaymentType, QuotationStatus } from '../models/bill.model';
-import { StorageService } from './storage.service';
+import { Bill, BillItem, DocumentType, PaymentType } from '../models/bill.model';
 import { ProductService } from './product.service';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -9,10 +9,7 @@ import { map } from 'rxjs/operators';
   providedIn: 'root'
 })
 export class BillingService {
-  private readonly DOCS_KEY = 'billing_documents';
-  private storageService = inject(StorageService);
   private productService = inject(ProductService);
-
   private documentsSubject = new BehaviorSubject<Bill[]>([]);
   public documents$: Observable<Bill[]> = this.documentsSubject.asObservable();
 
@@ -20,135 +17,125 @@ export class BillingService {
     map(docs => docs.filter(doc => doc.documentType === DocumentType.BILL))
   );
 
-  public quotations$: Observable<Bill[]> = this.documents$.pipe(
-    map(docs => docs.filter(doc => doc.documentType === DocumentType.QUOTATION))
-  );
-
   constructor() {
-    this.documentsSubject.next(this.storageService.getData(this.DOCS_KEY) || []);
+    this.refreshDocuments();
   }
 
-  private saveDataAndNotify(documents: Bill[]): void {
-    this.storageService.saveData(this.DOCS_KEY, documents);
-    this.documentsSubject.next([...documents]);
+  async refreshDocuments(): Promise<void> {
+    const rawDocs = await window.electronAPI.getBills();
+    const formattedDocs = rawDocs.map((doc: any) => ({
+      ...doc,
+      // Convert SQLite string dates back to JS Date objects
+      createdAt: new Date(doc.createdAt),
+      updatedAt: new Date(doc.updatedAt),
+      items: typeof doc.items === 'string' ? JSON.parse(doc.items) : doc.items
+    }));
+    this.documentsSubject.next(formattedDocs);
   }
+
+  // --- RESTORED MISSING METHODS ---
 
   getAllDocuments(): Bill[] {
     return this.documentsSubject.getValue();
   }
-  
-  getAllBills(): Bill[] {
-    return this.getAllDocuments().filter(doc => doc.documentType === DocumentType.BILL);
-  }
 
-  getAllQuotations(): Bill[] {
-    return this.getAllDocuments().filter(doc => doc.documentType === DocumentType.QUOTATION);
-  }
-
-  getBillById(id: string): Bill | undefined {
-    return this.getAllDocuments().find(doc => doc.id === id);
+  async getBillById(id: string): Promise<Bill | undefined> {
+    const doc = await window.electronAPI.getBill(id);
+    if (doc) {
+      return {
+        ...doc,
+        createdAt: new Date(doc.createdAt),
+        updatedAt: new Date(doc.updatedAt),
+        items: typeof doc.items === 'string' ? JSON.parse(doc.items) : doc.items
+      };
+    }
+    return undefined;
   }
 
   getBillsByCustomerId(customerId: string): Bill[] {
-    if (!customerId) return [];
-    return this.getAllBills()
-      .filter(bill => bill.customerId === customerId)
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    return this.getAllDocuments().filter(b => b.customerId === customerId);
   }
-  
+
   getPendingBills(): Bill[] {
-    return this.getAllBills().filter(bill =>
+    return this.getAllDocuments().filter(bill =>
       bill.paymentType === PaymentType.CREDIT && (bill.total - bill.amountPaid > 0)
     );
   }
 
   getBillsByDateRange(start: Date, end: Date): Bill[] {
     const startTime = start.getTime();
-    // Use end as exclusive upper bound, do not add extra day
     const endTime = end.getTime();
-
-    return this.getAllBills().filter(bill => {
-      const billTime = new Date(bill.createdAt).getTime();
+    return this.getAllDocuments().filter(bill => {
+      const billTime = bill.createdAt.getTime();
       return billTime >= startTime && billTime < endTime;
     });
   }
 
-  createDocument(docData: Omit<Bill, 'id' | 'createdAt' | 'updatedAt' | 'billNo'>): Bill {
-    const allDocs = this.getAllDocuments();
+  // --- CORE DATABASE OPERATIONS ---
+
+  async createDocument(docData: Omit<Bill, 'id' | 'createdAt' | 'updatedAt' | 'billNo'>): Promise<Bill> {
     const isBill = docData.documentType === DocumentType.BILL;
-    const sequenceKey = isBill ? 'bill_sequence_number' : 'quotation_sequence_number';
-    const prefix = isBill ? 'INV-' : 'QTN-';
-    
-    const nextSequence = this.storageService.getNextSequence(sequenceKey);
-    const formattedDocNo = `${prefix}${String(nextSequence).padStart(5, '0')}`;
+    const billNo = await window.electronAPI.getNextBillNumber();
 
     const newDocument: Bill = {
       ...docData,
-      id: this.storageService.generateId(),
-      billNo: formattedDocNo,
+      id: Date.now().toString(36),
+      billNo: billNo,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
     if (isBill) {
-      newDocument.items.forEach(item => {
+      for (const item of newDocument.items) {
         if (item.productId) {
-          this.productService.updateStock(item.productId, -item.quantity);
+          await this.productService.updateStock(item.productId, -item.quantity);
         }
-      });
+      }
     }
 
-    this.saveDataAndNotify([...allDocs, newDocument]);
-    this.storageService.saveSequence(sequenceKey, nextSequence);
+    const dbPayload = { 
+      ...newDocument, 
+      createdAt: newDocument.createdAt.toISOString(), 
+      updatedAt: newDocument.updatedAt.toISOString() 
+    };
+
+    await window.electronAPI.addBill(dbPayload);
+    await this.refreshDocuments();
     return newDocument;
   }
 
-  updateBill(id: string, billUpdateData: Partial<Omit<Bill, 'id' | 'createdAt' | 'updatedAt' | 'billNo'>>): Bill | null {
-    const allDocs = this.getAllDocuments();
-    const index = allDocs.findIndex(b => b.id === id);
-
-    if (index !== -1) {
-      const originalBill = allDocs[index];
-      allDocs[index] = {
-        ...originalBill,
-        ...billUpdateData,
-        billNo: originalBill.billNo,
-        updatedAt: new Date()
+  async updateBill(id: string, updateData: Partial<Bill>): Promise<void> {
+    const current = await this.getBillById(id);
+    if (current) {
+      const updated = { 
+        ...current, 
+        ...updateData, 
+        updatedAt: new Date() 
       };
-      this.saveDataAndNotify([...allDocs]);
-      return allDocs[index];
+      
+      const dbPayload = { 
+        ...updated, 
+        createdAt: updated.createdAt.toISOString(), 
+        updatedAt: updated.updatedAt.toISOString() 
+      };
+      
+      await window.electronAPI.updateBill(id, dbPayload);
+      await this.refreshDocuments();
     }
-    return null;
   }
-
-  deleteBill(id: string): boolean {
-    const allDocs = this.getAllDocuments();
-    const docToDelete = allDocs.find(d => d.id === id);
-
-    if (docToDelete && docToDelete.documentType === DocumentType.BILL) {
-      docToDelete.items.forEach(item => {
-        if (item.productId) {
-          this.productService.updateStock(item.productId, item.quantity); // Add stock back
-        }
-      });
+// Add this to src/app/services/billing.service.ts
+async deleteBill(id: string): Promise<void> {
+  const docToDelete = await this.getBillById(id);
+  if (docToDelete && docToDelete.documentType === DocumentType.BILL) {
+    for (const item of docToDelete.items) {
+      if (item.productId) {
+        await this.productService.updateStock(item.productId, item.quantity);
+      }
     }
-
-    const filteredDocs = allDocs.filter(d => d.id !== id);
-    if (filteredDocs.length !== allDocs.length) {
-      this.saveDataAndNotify(filteredDocs);
-      return true;
-    }
-    return false;
   }
-  
-  markBillAsPaid(id: string): Bill | null {
-    const bill = this.getBillById(id);
-    if (bill && bill.documentType === DocumentType.BILL) {
-      return this.updateBill(id, { amountPaid: bill.total });
-    }
-    return null;
-  }
-
+  await window.electronAPI.deleteBill(id);
+  await this.refreshDocuments();
+}
   calculateStockAdjustments(originalItems: BillItem[], newItems: BillItem[]): { productId: string, quantityChange: number }[] {
     const adjustments: { productId: string, quantityChange: number }[] = [];
     const newCartMap = new Map(newItems.filter(i => i.productId).map(i => [i.productId!, Number(i.quantity) || 0]));
@@ -159,10 +146,7 @@ export class BillingService {
       const originalQuantity = originalCartMap.get(productId) || 0;
       const newQuantity = newCartMap.get(productId) || 0;
       const difference = originalQuantity - newQuantity;
-  
-      if (difference !== 0) {
-        adjustments.push({ productId: productId, quantityChange: difference });
-      }
+      if (difference !== 0) adjustments.push({ productId, quantityChange: difference });
     });
     return adjustments;
   }

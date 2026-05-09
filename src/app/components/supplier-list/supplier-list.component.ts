@@ -80,23 +80,30 @@ export class SupplierListComponent implements OnInit, OnDestroy {
     this.showDeleteConfirmation = true;
   }
 
-  confirmDeleteSupplier(): void {
-    if (this.supplierToDelete) {
-      try {
-        const success = this.supplierService.deleteSupplier(this.supplierToDelete.id);
-        if (success) {
-          alert(`Supplier "${this.supplierToDelete.name}" deleted successfully.`);
-        } else {
-          alert(`Could not delete supplier "${this.supplierToDelete.name}".`);
-        }
-      } catch (error: any) {
-        alert(`Error deleting supplier: ${error.message}`);
-      } finally {
-        this.cancelDeleteSupplier();
-      }
+  // confirmDeleteSupplier(): void {
+  //   if (this.supplierToDelete) {
+  //     try {
+  //       const success = this.supplierService.deleteSupplier(this.supplierToDelete.id);
+  //       if (success) {
+  //         alert(`Supplier "${this.supplierToDelete.name}" deleted successfully.`);
+  //       } else {
+  //         alert(`Could not delete supplier "${this.supplierToDelete.name}".`);
+  //       }
+  //     } catch (error: any) {
+  //       alert(`Error deleting supplier: ${error.message}`);
+  //     } finally {
+  //       this.cancelDeleteSupplier();
+  //     }
+  //   }
+  // }
+async confirmDeleteSupplier() {
+  if (this.supplierToDelete) {
+    const success = await this.supplierService.deleteSupplier(this.supplierToDelete.id);
+    if (success) {
+      this.showDeleteConfirmation = false;
     }
   }
-
+}
   cancelDeleteSupplier(): void {
     this.showDeleteConfirmation = false;
     this.supplierToDelete = null;

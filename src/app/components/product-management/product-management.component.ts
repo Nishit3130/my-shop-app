@@ -43,8 +43,9 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // Subscribing to the products$ observable which is refreshed by the service
     const productsSub = this.productService.products$.subscribe(products => {
-      this.products = products.sort((a,b) => a.name.localeCompare(b.name));
+      this.products = [...products].sort((a, b) => a.name.localeCompare(b.name));
       this.filterProducts();
     });
     this.subscriptions.add(productsSub);
@@ -52,10 +53,6 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
-  }
-  
-  loadProducts(): void {
-    // Obsolete method.
   }
   
   filterProducts(): void {
@@ -89,7 +86,10 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
     this.showProductForm = false;
   }
   
-  saveProduct(): void {
+  /**
+   * UPDATED: Now asynchronous to handle SQLite Promises from ProductService
+   */
+  async saveProduct(): Promise<void> {
     if (this.productForm.invalid) {
       this.productForm.markAllAsTouched();
       return;
@@ -97,16 +97,21 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
     
     const productData = this.productForm.value;
     
-    if (this.editMode && this.currentProductId) {
-      this.productService.updateProduct(this.currentProductId, productData);
-    } else {
-      this.productService.addProduct(productData);
+    try {
+      if (this.editMode && this.currentProductId) {
+        // AWAIT the asynchronous update
+        await this.productService.updateProduct(this.currentProductId, productData);
+      } else {
+        // AWAIT the asynchronous addition
+        await this.productService.addProduct(productData);
+      }
+      
+      this.closeProductForm();
+    } catch (error: any) {
+      alert(`Error saving product: ${error.message || 'Unknown error occurred.'}`);
     }
-    
-    this.closeProductForm();
   }
   
-  // *** FIX IS HERE: Renamed 'requestDelete' to 'deleteProduct' to match the template call ***
   deleteProduct(id: string): void {
     this.productToDeleteId = id;
     this.showDeleteConfirmation = true;
@@ -117,9 +122,18 @@ export class ProductManagementComponent implements OnInit, OnDestroy {
     this.showDeleteConfirmation = false;
   }
   
-  confirmDelete(): void {
+  /**
+   * UPDATED: Now asynchronous to handle SQLite Promises from ProductService
+   */
+  async confirmDelete(): Promise<void> {
     if (this.productToDeleteId) {
-      this.productService.deleteProduct(this.productToDeleteId);
+      try {
+        // AWAIT the asynchronous deletion
+        // Note: success check is only if your service returns a boolean after awaiting
+        await this.productService.deleteProduct(this.productToDeleteId);
+      } catch (error: any) {
+        alert(`Error deleting product: ${error.message || 'Unknown error occurred.'}`);
+      }
     }
     this.cancelDelete();
   }

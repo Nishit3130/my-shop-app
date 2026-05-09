@@ -55,13 +55,12 @@ export class ReportService {
     // FIX: Use startDate and endDate for the full day
     const bills = this.billingService.getBillsByDateRange(startDate, endDate); // Pass original date here
     
-    const totalSales = bills.reduce((sum, bill) => sum + bill.total, 0);
-    const cashSales = bills
+const totalSales = bills.reduce((sum: number, bill: Bill) => sum + bill.total, 0);    const cashSales = bills
       .filter(bill => bill.paymentType === PaymentType.CASH)
-      .reduce((sum, bill) => sum + bill.total, 0);
+      .reduce((sum: number, bill: Bill) => sum + bill.total, 0);
     const creditSales = bills
       .filter(bill => bill.paymentType === PaymentType.CREDIT)
-      .reduce((sum, bill) => sum + bill.total, 0);
+      .reduce((sum: number, bill: Bill) => sum + bill.total, 0);
     
     return {
       date: startDate.getFullYear() + '-' + String(startDate.getMonth() + 1).padStart(2, '0') + '-' + String(startDate.getDate()).padStart(2, '0'),
@@ -90,7 +89,7 @@ export class ReportService {
   
   getPendingCreditAmount(): number {
     const pendingBills = this.billingService.getPendingBills();
-    return pendingBills.reduce((sum, bill) => sum + (bill.total - bill.amountPaid), 0);
+    return pendingBills.reduce((sum: number, bill: Bill) => sum + (bill.total - bill.amountPaid), 0);
   }
 
   generateProductPerformanceReport(startDate: Date, endDate: Date): ProductPerformance[] {

@@ -9,7 +9,7 @@ import { PaymentService } from '../../services/payment.service';
 import { CustomerService } from '../../services/customer.service';
 import { Transaction, TransactionType } from '../../models/transaction.model';
 import { Bill } from '../../models/bill.model';
-import { ExternalLedgerEntry, EntryType } from '../../models/external-entry.model';
+import { ExternalLedgerEntry} from '../../models/external-entry.model';
 import { Payment } from '../../models/payment.model';
 
 @Component({
@@ -126,8 +126,7 @@ export class ReportsComponent implements OnInit {
     });
     // Add external ledger entries for today
     const allExternalEntries = this.externalLedgerService.getAllEntries();
-    this.externalLedgerEntriesToday = allExternalEntries.filter(e => {
-      const d = new Date(e.date);
+    this.externalLedgerEntriesToday = allExternalEntries.filter((e: ExternalLedgerEntry) => {      const d = new Date(e.date);
       return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') === todayStr;
     });
     // Add payments for today

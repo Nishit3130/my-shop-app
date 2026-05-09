@@ -43,7 +43,6 @@ export class CustomerListComponent implements OnInit, OnDestroy {
   }
 
   loadCustomers(): void {
-    // Obsolete method, replaced by ngOnInit subscription.
     this.isLoading = true;
     this.allCustomers = this.customerService.getCustomers().sort((a, b) =>
       a.name.localeCompare(b.name)
@@ -84,18 +83,28 @@ requestDeleteCustomer(customer: Customer): void {
     this.showCustomerDeleteConfirmation = true;
   }
 
-confirmDeleteCustomer(): void {
+// confirmDeleteCustomer(): void {
+//     if (this.customerToDelete) {
+//       const success = this.customerService.deleteCustomer(this.customerToDelete.id);
+//       if (success) {
+//         alert(`Customer "${this.customerToDelete.name}" deleted successfully.`);
+//       } else {
+//         alert(`Could not delete customer "${this.customerToDelete.name}".`);
+//       }
+//       this.cancelDeleteCustomer();
+//     }
+//   }
+async confirmDeleteCustomer(): Promise<void> {
     if (this.customerToDelete) {
-      const success = this.customerService.deleteCustomer(this.customerToDelete.id);
+      const success = await this.customerService.deleteCustomer(this.customerToDelete.id);
       if (success) {
-        alert(`Customer "${this.customerToDelete.name}" deleted successfully.`);
+        alert(`Customer deleted successfully.`);
       } else {
-        alert(`Could not delete customer "${this.customerToDelete.name}".`);
+        alert(`Could not delete customer.`);
       }
       this.cancelDeleteCustomer();
     }
   }
-
   cancelDeleteCustomer(): void {
     this.showCustomerDeleteConfirmation = false;
     this.customerToDelete = null;
