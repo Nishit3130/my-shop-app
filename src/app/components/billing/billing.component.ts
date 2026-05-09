@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ViewChild, ElementRef} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -12,7 +12,6 @@ import { BillItem, PaymentType, Bill, DocumentType, QuotationStatus } from '../.
 import { Customer } from '../../models/customer.model';
 import { SettingsService } from '../../services/settings.service';
 import { AppSettings } from '../../models/settings.model';
-
 @Component({
   selector: 'app-billing',
   standalone: true,
@@ -81,6 +80,7 @@ export class BillingComponent implements OnInit, OnDestroy {
     this.route.paramMap.subscribe(params => {
       const idParam = params.get('id');
       const isConvertingQuote = this.route.snapshot.url[1]?.path === 'from-quote';
+      
       if (idParam && !isConvertingQuote) {
         this.editMode = true; 
         this.editingBillId = idParam; 
@@ -95,16 +95,13 @@ export class BillingComponent implements OnInit, OnDestroy {
         this.editMode = false; 
         this.editingBillId = null; 
         this.pageTitle = 'Create New Bill';
+        
         if (this.billingStateService.hasState()) {
-          if (confirm('You have an unsaved draft. Do you want to restore it?')) {
-            this.restoreState(this.billingStateService.getState());
-          } else {
-            this.billingStateService.clearBillingState(); 
-            this.resetBill();
-          }
+          this.restoreState(this.billingStateService.getState());
         } else {
           this.resetBill();
         }
+        
       }
     });
   }
@@ -303,7 +300,7 @@ export class BillingComponent implements OnInit, OnDestroy {
     this.cart.push(cartItem); 
     this.calculateAllTotals(); 
     this.resetNewItem();
-    setTimeout(() => this.productNameInputRef.nativeElement.focus(), 0);
+    setTimeout(() => this.productNameInputRef?.nativeElement.focus(), 0);
   }
 
   resetNewItem(): void {
